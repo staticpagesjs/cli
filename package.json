@@ -3,7 +3,13 @@
   "version": "0.0.0",
   "description": "CLI tool for the static pages generator.",
   "main": "index.js",
+  "bin": {
+    "staticpages": "index.js"
+  },
   "scripts": {
+    "prepack": "npm run build",
+    "watch": "tsc --watch",
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -29,10 +35,11 @@
   },
   "homepage": "https://github.com/staticpagesjs/cli#readme",
   "devDependencies": {
-    "@static-pages/core": "^0.1.0",
-    "jest": "^27.1.0"
+    "jest": "^27.1.0",
+    "typescript": "^4.4.3"
   },
   "dependencies": {
+    "@static-pages/core": "^0.1.0",
     "commander": "^8.1.0"
   }
 }
