@@ -17,7 +17,7 @@ program
   .option('-w, --to-writer <package>', 'import default from this package as the writer')
   .option('-A, --to-args <JSON-string>', 'arguments passed to writer; provide in JSON format')
   .option('-s, --controller <package>', 'controller that can process the input data before rendering')
-  .option('-t, --controller-this <JSON-string>', 'additional parameters that will be passed to the controller as \'this\'')
+  .option('-x, --context <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
   .parse();
 
 const getType = (x: any): string => typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
@@ -72,7 +72,7 @@ const prepareRoute = (route: any): Route => {
 };
 
 const opts = program.opts();
-const { config, fromReader, fromArgs, toWriter, toArgs, controller, controllerThis } = opts;
+const { config, fromReader, fromArgs, toWriter, toArgs, controller, context } = opts;
 
 try {
   let fromArgsParsed = undefined;
@@ -87,6 +87,13 @@ try {
     if (toArgs) toArgsParsed = JSON.parse(toArgs);
   } catch (error) {
     throw new Error(`Could not parse --to-args: ${error}`);
+  }
+
+  let contextParsed = undefined;
+  try {
+    if (context) contextParsed = JSON.parse(context);
+  } catch (error) {
+    throw new Error(`Could not parse --context: ${error}`);
   }
 
   if (config) { // from config file via --config
@@ -107,10 +114,10 @@ try {
       },
       to: {
         writer: toWriter,
-        args: fromArgsParsed,
+        args: toArgsParsed,
       },
       controller: controller,
-      ...(controllerThis ? JSON.parse(controllerThis) : undefined),
+      ...contextParsed,
     })];
   } else {
     program.help();
