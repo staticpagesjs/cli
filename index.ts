@@ -3,9 +3,10 @@
 import { program } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
+import * as importFrom from 'import-from';
 import staticPages, { Route } from '@static-pages/core';
 
-const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
+const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
 
 program
   .name(Object.keys(pkg.bin)[0])
@@ -22,7 +23,7 @@ program
 const getType = (x: any): string => typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
 const ensureArray = (x: any): unknown[] => Array.isArray(x) ? x : [x];
 const importDefaultOrRoot = (mod: any): unknown => mod.default ? mod.default : mod;
-const prepareRoute = async (route: any): Promise<Route> => {
+const prepareRoute = (route: any): Route => {
   // Validate all required properties
   if (typeof route !== 'object' || !route)
     throw new Error(`Route type mismatch, expected 'object', got '${getType(route)}'.`);
@@ -42,15 +43,15 @@ const prepareRoute = async (route: any): Promise<Route> => {
   // Construct the route object accepted by the core.
   const { from, to, controller, ...rest } = route;
 
-  const fromReader = importDefaultOrRoot(await import(from.reader));
+  const fromReader = importDefaultOrRoot(importFrom(process.cwd(), from.reader));
   if (typeof fromReader !== 'function')
     throw new Error(`'route.from.reader' of '${from.reader}' does not exports a function.`);
 
-  const fromIterable = fromReader.apply(undefined, ensureArray(from.args))
-  if (!(Symbol.iterator in fromIterable) || !(Symbol.asyncIterator in fromIterable))
+  const fromIterable = fromReader.apply(undefined, ensureArray(from.args));
+  if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
     throw new Error(`'route.from.reader' of '${from.reader}' does not provide an iterable or async iterable.`);
 
-  const toWriterInitializer = importDefaultOrRoot(await import(to.writer));
+  const toWriterInitializer = importDefaultOrRoot(importFrom(process.cwd(), to.writer));
   if (typeof toWriterInitializer !== 'function')
     throw new Error(`'route.to.writer' of '${to.writer}' does not exports a function.`);
 
@@ -58,7 +59,7 @@ const prepareRoute = async (route: any): Promise<Route> => {
   if (typeof toWriter !== 'function')
     throw new Error(`'route.to.writer' of '${to.writer}' does not provide a function after initialization.`);
 
-  const controllerFn = typeof controller === 'string' ? importDefaultOrRoot(await import(controller)) : undefined;
+  const controllerFn = typeof controller === 'string' ? importDefaultOrRoot(importFrom(process.cwd(), controller)) : undefined;
   if (controllerFn && typeof controllerFn !== 'function')
     throw new Error(`'route.controller' of '${controller}' does not provide a function.`);
 
@@ -70,40 +71,35 @@ const prepareRoute = async (route: any): Promise<Route> => {
   };
 };
 
-(async () => {
-  const opts = program.opts();
-  const { config, fromReader, fromArgs, toWriter, toArgs, controller, controllerThis } = opts;
+const opts = program.opts();
+const { config, fromReader, fromArgs, toWriter, toArgs, controller, controllerThis } = opts;
 
-  if (config) {
-    if (!fs.existsSync(config)) {
-      throw new Error(`Configuration file does not exists: ${config}`);
-    }
-    try {
-      var routes = await Promise.all(
-        ensureArray(yaml.load(fs.readFileSync(config, 'utf-8')))
-          .map(x => prepareRoute(x))
-      );
-    } catch (error) {
-      throw new Error(`Could not parse configuration file: ${error}`);
-    }
-  } else if (Object.keys(opts).length > 0) {
-    var routes = [await prepareRoute({
-      from: {
-        reader: fromReader,
-        args: fromArgs,
-      },
-      to: {
-        writer: toWriter,
-        args: toArgs,
-      },
-      controller: controller,
-      ...controllerThis,
-    })];
-  } else {
-    program.help();
+if (config) {
+  if (!fs.existsSync(config)) {
+    throw new Error(`Configuration file does not exists: ${config}`);
   }
+  try {
+    var routes = ensureArray(yaml.load(fs.readFileSync(config, 'utf-8')))
+        .map(x => prepareRoute(x));
+  } catch (error) {
+    throw new Error(`Could not prepare configuration: ${error}`);
+  }
+} else if (Object.keys(opts).length > 0) {
+  var routes = [prepareRoute({
+    from: {
+      reader: fromReader,
+      args: fromArgs,
+    },
+    to: {
+      writer: toWriter,
+      args: toArgs,
+    },
+    controller: controller,
+    ...controllerThis,
+  })];
+} else {
+  program.help();
+}
 
-  // The work.
-  await staticPages(routes);
-
-})().catch(console.error);
+// The work.
+staticPages(routes).catch(console.error);
