@@ -130,6 +130,6 @@ try {
   // The work.
   staticPages(routes).catch(error => { throw error; });
 
-} catch (error) {
+} catch (error: any) {
   console.error(error.message || error);
 }
