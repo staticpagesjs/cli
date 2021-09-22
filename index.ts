@@ -117,7 +117,7 @@ try {
   }
 
   // The work.
-  staticPages(routes).catch(console.error);
+  staticPages(routes).catch(error => { throw error; });
 
 } catch (error) {
   console.error(error.message || error);
