@@ -22,7 +22,11 @@ program
 
 const getType = (x: any): string => typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
 const ensureArray = (x: any): unknown[] => Array.isArray(x) ? x : [x];
-const importDefaultOrRoot = (mod: any): unknown => mod.default ? mod.default : mod;
+const importDefaultOrRoot = (file: any): unknown => {
+  const mod: any = importFrom(process.cwd(), file);
+  return mod.default ? mod.default : mod;
+};
+
 const prepareRoute = (route: any): Route => {
   // Validate all required properties
   if (typeof route !== 'object' || !route)
@@ -43,7 +47,7 @@ const prepareRoute = (route: any): Route => {
   // Construct the route object accepted by the core.
   const { from, to, controller, ...rest } = route;
 
-  const fromReader = importDefaultOrRoot(importFrom(process.cwd(), from.reader));
+  const fromReader = importDefaultOrRoot(from.reader);
   if (typeof fromReader !== 'function')
     throw new Error(`'route.from.reader' of '${from.reader}' does not exports a function.`);
 
@@ -51,7 +55,7 @@ const prepareRoute = (route: any): Route => {
   if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
     throw new Error(`'route.from.reader' of '${from.reader}' does not provide an iterable or async iterable.`);
 
-  const toWriterInitializer = importDefaultOrRoot(importFrom(process.cwd(), to.writer));
+  const toWriterInitializer = importDefaultOrRoot(to.writer);
   if (typeof toWriterInitializer !== 'function')
     throw new Error(`'route.to.writer' of '${to.writer}' does not exports a function.`);
 
@@ -59,7 +63,7 @@ const prepareRoute = (route: any): Route => {
   if (typeof toWriter !== 'function')
     throw new Error(`'route.to.writer' of '${to.writer}' does not provide a function after initialization.`);
 
-  const controllerFn = typeof controller === 'string' ? importDefaultOrRoot(importFrom(process.cwd(), controller)) : undefined;
+  const controllerFn = typeof controller === 'string' ? importDefaultOrRoot(controller) : undefined;
   if (controllerFn && typeof controllerFn !== 'function')
     throw new Error(`'route.controller' of '${controller}' does not provide a function.`);
 
