@@ -74,32 +74,51 @@ const prepareRoute = (route: any): Route => {
 const opts = program.opts();
 const { config, fromReader, fromArgs, toWriter, toArgs, controller, controllerThis } = opts;
 
-if (config) {
-  if (!fs.existsSync(config)) {
-    throw new Error(`Configuration file does not exists: ${config}`);
-  }
+try {
+  let fromArgsParsed = undefined;
   try {
-    var routes = ensureArray(yaml.load(fs.readFileSync(config, 'utf-8')))
-        .map(x => prepareRoute(x));
+    if (fromArgs) fromArgsParsed = JSON.parse(fromArgs);
   } catch (error) {
-    throw new Error(`Could not prepare configuration: ${error}`);
+    throw new Error(`Could not parse --from-args: ${error}`);
   }
-} else if (Object.keys(opts).length > 0) {
-  var routes = [prepareRoute({
-    from: {
-      reader: fromReader,
-      args: fromArgs,
-    },
-    to: {
-      writer: toWriter,
-      args: toArgs,
-    },
-    controller: controller,
-    ...controllerThis,
-  })];
-} else {
-  program.help();
-}
 
-// The work.
-staticPages(routes).catch(console.error);
+  let toArgsParsed = undefined;
+  try {
+    if (toArgs) toArgsParsed = JSON.parse(toArgs);
+  } catch (error) {
+    throw new Error(`Could not parse --to-args: ${error}`);
+  }
+
+  if (config) { // from config file via --config
+    if (!fs.existsSync(config)) {
+      throw new Error(`Configuration file does not exists: ${config}`);
+    }
+    try {
+      var routes = ensureArray(yaml.load(fs.readFileSync(config, 'utf-8')))
+        .map(x => prepareRoute(x));
+    } catch (error) {
+      throw new Error(`Could not prepare configuration: ${error}`);
+    }
+  } else if (Object.keys(opts).length > 0) { // from command line options
+    var routes = [prepareRoute({
+      from: {
+        reader: fromReader,
+        args: fromArgsParsed,
+      },
+      to: {
+        writer: toWriter,
+        args: fromArgsParsed,
+      },
+      controller: controller,
+      ...(controllerThis ? JSON.parse(controllerThis) : undefined),
+    })];
+  } else {
+    program.help();
+  }
+
+  // The work.
+  staticPages(routes).catch(console.error);
+
+} catch (error) {
+  console.error(error.message || error);
+}
