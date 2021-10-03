@@ -28,25 +28,25 @@ const importDefaultOrRoot = (file: any): unknown => {
 };
 
 const prepareRoute = (route: any): Route => {
+  const { from, to, controller, ...rest } = route;
+
   // Validate all required properties
   if (typeof route !== 'object' || !route)
     throw new Error(`Route type mismatch, expected 'object', got '${getType(route)}'.`);
 
-  if (typeof route.from !== 'object' || !route.from)
-    throw new Error(`'route.from' type mismatch, expected 'object', got '${getType(route.from)}'.`);
+  if (typeof from !== 'object' || !from)
+    throw new Error(`'route.from' type mismatch, expected 'object', got '${getType(from)}'.`);
 
-  if (typeof route.from.reader !== 'string')
-    throw new Error(`'route.from.reader' type mismatch, expected 'object', got '${getType(route.from.writer)}'.`);
+  if (typeof from.reader !== 'string')
+    throw new Error(`'route.from.reader' type mismatch, expected 'object', got '${getType(from.writer)}'.`);
 
-  if (typeof route.to !== 'object' || !route.to)
-    throw new Error(`'route.to' type mismatch, expected 'object', got '${getType(route.to)}'.`);
+  if (typeof to !== 'object' || !to)
+    throw new Error(`'route.to' type mismatch, expected 'object', got '${getType(to)}'.`);
 
-  if (typeof route.to.writer !== 'string')
-    throw new Error(`'route.to.writer' type mismatch, expected 'object', got '${getType(route.to.writer)}'.`);
+  if (typeof to.writer !== 'string')
+    throw new Error(`'route.to.writer' type mismatch, expected 'object', got '${getType(to.writer)}'.`);
 
   // Construct the route object accepted by the core.
-  const { from, to, controller, ...rest } = route;
-
   const fromReader = importDefaultOrRoot(from.reader);
   if (typeof fromReader !== 'function')
     throw new Error(`'route.from.reader' of '${from.reader}' does not exports a function.`);
@@ -107,8 +107,8 @@ try {
     try {
       var routes = ensureArray(yaml.load(fs.readFileSync(config, 'utf-8')))
         .map(x => prepareRoute(x));
-    } catch (error) {
-      throw new Error(`Could not prepare configuration: ${error}`);
+    } catch (error: any) {
+      throw new Error(`Could not prepare configuration: ${error.message || error}`);
     }
   } else if (Object.keys(opts).length > 0) { // from command line options
     var routes = [prepareRoute({
