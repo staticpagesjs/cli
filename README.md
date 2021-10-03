@@ -56,7 +56,11 @@ Example:
 
 Can be in JSON or YAML format. It must contain one or more `Route` entries (in array or simply as one object).
 
-A `Route` defines a **data source** (`from`), a **controller** (`controller`) where your data can be transformed and a **destination** (`to`) which will render the final page. \
+A `Route` defines
+- a **data source** (`from`),
+- a **controller** (`controller`) where your data can be transformed
+- and a **destination** (`to`) which will render the final page.
+
 Additional properties can be added to the `Route`, these properties will be accessible in the `controller` via the `this` context.
 
 Formally:
@@ -130,7 +134,7 @@ controller: ./controllers/my-controller.js
   controller: ./controllers/my-home-controller.js
 ```
 
-> Controllers can be stored along with the *.md/*.yaml/data files in your local repository.
+> Controllers can be stored along with the \*.md/\*.yaml/data files in your local repository.
 
 ## Missing a feature?
 Create an issue describing your needs. If it fits the scope of the project I will implement it or you can implement it your own and submit a pull request.
