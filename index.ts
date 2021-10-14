@@ -43,9 +43,11 @@ const ensureArray = (x: any): unknown[] => Array.isArray(x) ? x : [x];
  * @param file Module path.
  * @returns Module exports.
  */
-const importDefaultOrRoot = (file: any): unknown => {
+const importCliModule = (file: any): unknown => {
   const mod: any = importFrom(process.cwd(), file);
-  return mod.default ? mod.default : mod;
+  if (mod.cli) return mod.cli;
+  if (mod.default) return mod.default;
+  return mod;
 };
 
 /**
@@ -74,7 +76,7 @@ async function prepareRoute(route: any): Promise<Route> {
     throw new Error(`'route.to.writer' type mismatch, expected 'object', got '${getType(to.writer)}'.`);
 
   // Construct the route object accepted by the core.
-  const fromReader = importDefaultOrRoot(from.reader);
+  const fromReader = importCliModule(from.reader);
   if (typeof fromReader !== 'function')
     throw new Error(`'route.from.reader' of '${from.reader}' does not exports a function.`);
 
@@ -82,7 +84,7 @@ async function prepareRoute(route: any): Promise<Route> {
   if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
     throw new Error(`'route.from.reader' of '${from.reader}' does not provide an iterable or async iterable.`);
 
-  const toWriterInitializer = importDefaultOrRoot(to.writer);
+  const toWriterInitializer = importCliModule(to.writer);
   if (typeof toWriterInitializer !== 'function')
     throw new Error(`'route.to.writer' of '${to.writer}' does not exports a function.`);
 
@@ -90,7 +92,7 @@ async function prepareRoute(route: any): Promise<Route> {
   if (typeof toWriter !== 'function')
     throw new Error(`'route.to.writer' of '${to.writer}' does not provide a function after initialization.`);
 
-  const controllerFn = typeof controller === 'string' ? importDefaultOrRoot(controller) : undefined;
+  const controllerFn = typeof controller === 'string' ? importCliModule(controller) : undefined;
   if (controllerFn && typeof controllerFn !== 'function')
     throw new Error(`'route.controller' of '${controller}' does not provide a function.`);
 
