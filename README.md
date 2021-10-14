@@ -101,8 +101,8 @@ to:
   writer: @static-pages/twig-writer
   args:
     view: content.html.twig
-    views: path/to/views/folder
-    out: path/to/output/folder
+    viewsDir: path/to/views/folder
+    outDir: path/to/output/folder
 controller: ./controllers/my-controller.js
 ```
 
@@ -117,8 +117,8 @@ controller: ./controllers/my-controller.js
     writer: @static-pages/twig-writer
     args:
       view: content.html.twig
-      views: path/to/views/folder
-      out: path/to/output/folder
+      viewsDir: path/to/views/folder
+      outDir: path/to/output/folder
   controller: ./controllers/my-pages-controller.js
 - from:
     reader: @static-pages/yaml-reader
@@ -129,8 +129,8 @@ controller: ./controllers/my-controller.js
     writer: @static-pages/twig-writer
     args:
       view: home.html.twig
-      views: path/to/views/folder
-      out: path/to/output/folder
+      viewsDir: path/to/views/folder
+      outDir: path/to/output/folder
   controller: ./controllers/my-home-controller.js
 ```
 
