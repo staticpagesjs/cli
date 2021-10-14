@@ -28,22 +28,22 @@ This project targets small and medium sized projects. The rendering process trie
 There are two methods of usage:
 ### Load configuration from a file:
 ```sh
-# staticpages [-c|--config <path>]
+$ staticpages [-c|--config <path>]
 ```
 
 Example:
 ```sh
-# staticpages --config staticpages.yaml
+$ staticpages --config staticpages.yaml
 ```
 
 ### Set configuration with CLI options:
 ```sh
-# staticpages [-r|--from-reader <package>] [-a|--from-args <JSON-string>] [-w|--to-writer <package>] [-A|--to-args <JSON-string>] [-s|--controller <package>] [-x|--context <JSON-string>]
+$ staticpages [-r|--from-reader <package>] [-a|--from-args <JSON-string>] [-w|--to-writer <package>] [-A|--to-args <JSON-string>] [-s|--controller <package>] [-x|--context <JSON-string>]
 ```
 
 Example:
 ```sh
-# staticpages --from-reader @static-pages/markdown-reader \
+$ staticpages --from-reader @static-pages/markdown-reader \
               --from-args "{\"cwd\":\"pages\"}" \
               --to-writer @static-pages/twig-writer \
               --to-args "{\"view\":\"content.html.twig\"}" \
