@@ -20,14 +20,41 @@ program
   .option('-x, --context <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
   .parse();
 
+/**
+ * Gets the type name of a variable.
+ * Similar to `typeof x` except `null` is reported as `null`, not `object`.
+ * 
+ * @param x Target which type is in question.
+ * @returns Type name like `object`, `string`, 'function`, `number`, `null` etc.
+ */
 const getType = (x: any): string => typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
+
+/**
+ * Ensures that the given object is an array.
+ * Wraps it in array if its not an array.
+ * @param x Any object.
+ * @returns Array.
+ */
 const ensureArray = (x: any): unknown[] => Array.isArray(x) ? x : [x];
+
+/**
+ * Imports a CommonJS module, relative from the process.cwd().
+ * 
+ * @param file Module path.
+ * @returns Module exports.
+ */
 const importDefaultOrRoot = (file: any): unknown => {
   const mod: any = importFrom(process.cwd(), file);
   return mod.default ? mod.default : mod;
 };
 
-const prepareRoute = (route: any): Route => {
+/**
+ * Transforms stringified 'cli' route definitions into 'core' route definitions.
+ * 
+ * @param route CLI route definition where properties are strings and needs to be resolved to its corresponding types.
+ * @returns Proper route definition accepted by static-pages/core.
+ */
+async function prepareRoute(route: any): Promise<Route> {
   const { from, to, controller, ...rest } = route;
 
   // Validate all required properties
@@ -51,7 +78,7 @@ const prepareRoute = (route: any): Route => {
   if (typeof fromReader !== 'function')
     throw new Error(`'route.from.reader' of '${from.reader}' does not exports a function.`);
 
-  const fromIterable = fromReader.apply(undefined, ensureArray(from.args));
+  const fromIterable = await fromReader.apply(undefined, ensureArray(from.args));
   if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
     throw new Error(`'route.from.reader' of '${from.reader}' does not provide an iterable or async iterable.`);
 
@@ -59,7 +86,7 @@ const prepareRoute = (route: any): Route => {
   if (typeof toWriterInitializer !== 'function')
     throw new Error(`'route.to.writer' of '${to.writer}' does not exports a function.`);
 
-  const toWriter = toWriterInitializer.apply(undefined, ensureArray(to.args));
+  const toWriter = await toWriterInitializer.apply(undefined, ensureArray(to.args));
   if (typeof toWriter !== 'function')
     throw new Error(`'route.to.writer' of '${to.writer}' does not provide a function after initialization.`);
 
@@ -73,12 +100,12 @@ const prepareRoute = (route: any): Route => {
     controller: controllerFn,
     ...rest,
   };
-};
+}
 
 const opts = program.opts();
 const { config, fromReader, fromArgs, toWriter, toArgs, controller, context } = opts;
 
-try {
+(async () => {
   let fromArgsParsed = undefined;
   try {
     if (fromArgs) fromArgsParsed = JSON.parse(fromArgs);
@@ -105,13 +132,15 @@ try {
       throw new Error(`Configuration file does not exists: ${config}`);
     }
     try {
-      var routes = ensureArray(yaml.load(fs.readFileSync(config, 'utf-8')))
-        .map(x => prepareRoute(x));
+      var routes = await Promise.all(
+        ensureArray(yaml.load(fs.readFileSync(config, 'utf-8')))
+          .map(x => prepareRoute(x))
+      );
     } catch (error: any) {
       throw new Error(`Could not prepare configuration: ${error.message || error}`);
     }
   } else if (Object.keys(opts).length > 0) { // from command line options
-    var routes = [prepareRoute({
+    var routes = [await prepareRoute({
       from: {
         reader: fromReader,
         args: fromArgsParsed,
@@ -128,8 +157,9 @@ try {
   }
 
   // The work.
-  staticPages(routes).catch(error => { console.error(error.message || error); });
+  await staticPages(routes);
 
-} catch (error: any) {
-  console.error(error.message || error);
-}
+})()
+  .catch(
+    (error: any) => { console.error(error.message || error); }
+  );
