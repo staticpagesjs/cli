@@ -1,6 +1,7 @@
+/coverage/
+/tests/temp/
+/index.js
 node_modules
 *.log
 *.tgz
 *.exe
-/index.js
-/tests/temp
