@@ -3,3 +3,4 @@ node_modules
 *.tgz
 *.exe
 /index.js
+/tests/temp

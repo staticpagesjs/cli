@@ -1,0 +1,6 @@
+OUTPUT --
+{
+    "source": "page2.json",
+    "foo": "baz"
+}
+OUTPUT ---
