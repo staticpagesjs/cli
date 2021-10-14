@@ -1,5 +1,7 @@
 # Static Pages / CLI
 
+[![Build Status](https://app.travis-ci.com/staticpagesjs/cli.svg?branch=master)](https://app.travis-ci.com/staticpagesjs/cli)
+
 This package is the static pages generator command-line tool.
 It does not bundle **readers** or **writers**, you must install them separately.
 Globally installed readers and writers are supported, just set the `NODE_PATH` env variable to point to your global npm packages folder. Run `npm root -g` to find where it is.
