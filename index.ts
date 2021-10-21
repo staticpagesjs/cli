@@ -44,10 +44,14 @@ const ensureArray = (x: any): unknown[] => Array.isArray(x) ? x : [x];
  * @returns Module exports.
  */
 const importCliModule = (file: any): unknown => {
-  const mod: any = importFrom(process.cwd(), file);
-  if (mod.cli) return mod.cli;
-  if (mod.default) return mod.default;
-  return mod;
+  try {
+    const mod: any = importFrom(process.cwd(), file);
+    if (mod.cli) return mod.cli;
+    if (mod.default) return mod.default;
+    return mod;
+  } catch (error: any) {
+    throw new Error(`Failed to load module '${file}': ${error.message || error}\n${error.stack ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
+  }
 };
 
 /**
@@ -67,7 +71,7 @@ async function prepareRoute(route: any): Promise<Route> {
     throw new Error(`'route.from' type mismatch, expected 'object', got '${getType(from)}'.`);
 
   if (typeof from.reader !== 'string')
-    throw new Error(`'route.from.reader' type mismatch, expected 'object', got '${getType(from.writer)}'.`);
+    throw new Error(`'route.from.reader' type mismatch, expected 'object', got '${getType(from.reader)}'.`);
 
   if (typeof to !== 'object' || !to)
     throw new Error(`'route.to' type mismatch, expected 'object', got '${getType(to)}'.`);
@@ -111,22 +115,22 @@ const { config, fromReader, fromArgs, toWriter, toArgs, controller, context } = 
   let fromArgsParsed = undefined;
   try {
     if (fromArgs) fromArgsParsed = JSON.parse(fromArgs);
-  } catch (error) {
-    throw new Error(`Could not parse --from-args: ${error}`);
+  } catch (error: any) {
+    throw new Error(`Could not parse --from-args: ${error.message || error}`);
   }
 
   let toArgsParsed = undefined;
   try {
     if (toArgs) toArgsParsed = JSON.parse(toArgs);
-  } catch (error) {
-    throw new Error(`Could not parse --to-args: ${error}`);
+  } catch (error: any) {
+    throw new Error(`Could not parse --to-args: ${error.message || error}`);
   }
 
   let contextParsed = undefined;
   try {
     if (context) contextParsed = JSON.parse(context);
-  } catch (error) {
-    throw new Error(`Could not parse --context: ${error}`);
+  } catch (error: any) {
+    throw new Error(`Could not parse --context: ${error.message || error}`);
   }
 
   if (config) { // from config file via --config
