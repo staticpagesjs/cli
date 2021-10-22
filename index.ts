@@ -103,6 +103,57 @@ async function prepareRoute(route: any): Promise<Route> {
   };
 }
 
+/**
+ * Reads configuration from yaml file.
+ *
+ * @param file Path to the configuration file.
+ * @returns Route definitions.
+ */
+function routeFromFile(file: string): Promise<Route[]> {
+  if (!fs.existsSync(file)) {
+    throw new Error(`Configuration file does not exists: ${file}`);
+  }
+  try {
+    return Promise.all(
+      ensureArray(yaml.load(fs.readFileSync(file, 'utf-8')))
+        .map(x => prepareRoute(x))
+    );
+  } catch (error: any) {
+    throw new Error(`Could not prepare configuration: ${error.message || error}`);
+  }
+}
+
+/**
+ * Reads configuration provided by the cli.
+ *
+ * @param fromReader Package name of the reader.
+ * @param fromArgs Args passed to the reader factory.
+ * @param toWriter Package name of the writer.
+ * @param toArgs Args passed to the writer factory.
+ * @param context Context params of the controller.
+ * @returns Route definitions.
+ */
+async function routeFromArgs(
+  fromReader: string,
+  fromArgs: string,
+  toWriter: string,
+  toArgs: string,
+  context: Record<string, unknown>
+): Promise<Route[]> {
+  return [await prepareRoute({
+    from: {
+      reader: fromReader,
+      args: fromArgs,
+    },
+    to: {
+      writer: toWriter,
+      args: toArgs,
+    },
+    controller: controller,
+    ...context,
+  })];
+}
+
 const opts = program.opts();
 const { config, fromReader, fromArgs, toWriter, toArgs, controller, context } = opts;
 
@@ -128,31 +179,13 @@ const { config, fromReader, fromArgs, toWriter, toArgs, controller, context } = 
     throw new Error(`Could not parse --context: ${error.message || error}`);
   }
 
-  if (config) { // from config file via --config
-    if (!fs.existsSync(config)) {
-      throw new Error(`Configuration file does not exists: ${config}`);
-    }
-    try {
-      var routes = await Promise.all(
-        ensureArray(yaml.load(fs.readFileSync(config, 'utf-8')))
-          .map(x => prepareRoute(x))
-      );
-    } catch (error: any) {
-      throw new Error(`Could not prepare configuration: ${error.message || error}`);
-    }
-  } else if (Object.keys(opts).length > 0) { // from command line options
-    var routes = [await prepareRoute({
-      from: {
-        reader: fromReader,
-        args: fromArgsParsed,
-      },
-      to: {
-        writer: toWriter,
-        args: toArgsParsed,
-      },
-      controller: controller,
-      ...contextParsed,
-    })];
+  let routes;
+  if (config) {
+    // from config file via --config
+    routes = await routeFromFile(config);
+  } else if (Object.keys(opts).length > 0) {
+    // from command line options
+    routes = await routeFromArgs(fromReader, fromArgsParsed, toWriter, toArgsParsed, contextParsed);
   } else {
     program.help();
   }
