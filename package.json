@@ -33,7 +33,7 @@
   "bugs": {
     "url": "https://github.com/staticpagesjs/cli/issues"
   },
-  "homepage": "https://github.com/staticpagesjs/cli#readme",
+  "homepage": "https://staticpagesjs.github.io/",
   "devDependencies": {
     "@types/js-yaml": "^4.0.3",
     "concat-stream": "^2.0.0",
