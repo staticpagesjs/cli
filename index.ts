@@ -21,17 +21,22 @@ program
   .parse();
 
 /**
- * Gets the type name of a variable.
- * Similar to `typeof x` except `null` is reported as `null`, not `object`.
- * 
- * @param x Target which type is in question.
- * @returns Type name like `object`, `string`, 'function`, `number`, `null` etc.
+ * Ensures a variable has the desired type.
+ *
+ * @param name Name of the variable that is reported on error.
+ * @param x The variable to check.
+ * @param desiredType The desired type.
  */
-const getType = (x: any): string => typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
+const assertType = (name: string, x: any, desiredType: string): void => {
+  const actualType = typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
+  if (actualType !== desiredType)
+    throw new Error(`'${name}' type mismatch, expected '${desiredType}', got '${actualType}'.`);
+};
 
 /**
  * Ensures that the given object is an array.
  * Wraps it in array if its not an array.
+ *
  * @param x Any object.
  * @returns Array.
  */
@@ -39,7 +44,7 @@ const ensureArray = (x: any): unknown[] => Array.isArray(x) ? x : [x];
 
 /**
  * Imports a CommonJS module, relative from the process.cwd().
- * 
+ *
  * @param file Module path.
  * @returns Module exports.
  */
@@ -55,29 +60,19 @@ const importCliModule = (file: any): unknown => {
 };
 
 /**
- * Transforms stringified 'cli' route definitions into 'core' route definitions.
- * 
+ * Resolves string properties of a 'cli' route into real objects used by 'core' route definitions.
+ *
  * @param route CLI route definition where properties are strings and needs to be resolved to its corresponding types.
  * @returns Proper route definition accepted by static-pages/core.
  */
 async function prepareRoute(route: any): Promise<Route> {
   const { from, to, controller, ...rest } = route;
 
-  // Validate all required properties
-  if (typeof route !== 'object' || !route)
-    throw new Error(`Route type mismatch, expected 'object', got '${getType(route)}'.`);
-
-  if (typeof from !== 'object' || !from)
-    throw new Error(`'route.from' type mismatch, expected 'object', got '${getType(from)}'.`);
-
-  if (typeof from.reader !== 'string')
-    throw new Error(`'route.from.reader' type mismatch, expected 'object', got '${getType(from.reader)}'.`);
-
-  if (typeof to !== 'object' || !to)
-    throw new Error(`'route.to' type mismatch, expected 'object', got '${getType(to)}'.`);
-
-  if (typeof to.writer !== 'string')
-    throw new Error(`'route.to.writer' type mismatch, expected 'object', got '${getType(to.writer)}'.`);
+  assertType('route', route, 'object');
+  assertType('route.from', route.from, 'object');
+  assertType('route.from.reader', route.from.reader, 'string');
+  assertType('route.to', route.to, 'object');
+  assertType('route.to.writer', route.to.writer, 'string');
 
   // Construct the route object accepted by the core.
   const fromReader = importCliModule(from.reader);
