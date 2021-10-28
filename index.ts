@@ -12,12 +12,12 @@ program
   .name(Object.keys(pkg.bin)[0])
   .version(pkg.version, '-v, --version', 'output the current cli version')
   .option('-c, --config <path>', 'path to a build configuration file')
-  .option('-r, --from <package>', 'import \'default\' or \'cli\' from this package as the reader')
+  .option('-f, --from <package>', 'import \'default\' or \'cli\' from this package as the reader')
   .option('-a, --from-args <JSON-string>', 'arguments passed to reader; provide in JSON format')
-  .option('-w, --to <package>', 'import \'default\' or \'cli\' from this package as the writer')
+  .option('-t, --to <package>', 'import \'default\' or \'cli\' from this package as the writer')
   .option('-A, --to-args <JSON-string>', 'arguments passed to writer; provide in JSON format')
   .option('-s, --controller <package>', 'controller that can process the input data before rendering')
-  .option('-t, --context <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
+  .option('-x, --context <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
   .parse();
 
 /**

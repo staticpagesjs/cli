@@ -40,14 +40,14 @@ $ staticpages --config staticpages.yaml
 
 ### Set configuration with CLI options:
 ```sh
-$ staticpages [-r|--from-reader <package>] [-a|--from-args <JSON-string>] [-w|--to-writer <package>] [-A|--to-args <JSON-string>] [-s|--controller <package>] [-x|--context <JSON-string>]
+$ staticpages [-f|--from <package>] [-a|--from-args <JSON-string>] [-t|--to <package>] [-A|--to-args <JSON-string>] [-s|--controller <package>] [-x|--context <JSON-string>]
 ```
 
 Example:
 ```sh
-$ staticpages --from-reader @static-pages/markdown-reader \
+$ staticpages --from @static-pages/markdown-reader \
               --from-args "{\"cwd\":\"pages\"}" \
-              --to-writer @static-pages/twig-writer \
+              --to @static-pages/twig-writer \
               --to-args "{\"view\":\"content.html.twig\"}" \
               --controller ./controllers/my-pages-controller.js
 ```
@@ -68,39 +68,43 @@ Additional properties can be added to the `Route`, these properties will be acce
 Formally:
 ```ts
 interface Route {
-    from: {
-        reader: string;
+    from: string | {
+        module: string;
+        import?: string;
         args?: unknown;
     };
-    to: {
-        writer: string;
+    to: string | {
+        module: string;
+        import?: string;
         args?: unknown;
     };
-    controller: string;
+    controller?: string;
     [additionalProps: string]: unknown;
 }
 ```
 
 The `from` property:
-- `from.reader` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns an `Iterable` or an `AsyncIterable`.
+- `from.module` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns an `Iterable` or an `AsyncIterable`.
 - `from.args` is passed to the reader factory function as arguments. If args is not an array, it is converted to an array.
+- `from.import` defines the imported factory function name.
 
 The `to` property:
-- `to.writer` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns a `render(data)` function.
+- `to.module` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns a `render(data)` function.
 - `to.args` is passed to the writer factory function as arguments. If args is not an array, it is converted to an array.
+- `to.import` defines the imported factory function name.
 
-The `controller` property is a string that resolves to an npm package or a local commonjs module.
+The `controller` property is a string that resolves to an npm package or a local commonjs module. Can be omitted.
 
 
 #### Sample with a single route
 ```yaml
 from:
-  reader: @static-pages/markdown-reader
+  module: @static-pages/markdown-reader
   args:
     cwd: pages
     pattern: **/*.md
 to:
-  writer: @static-pages/twig-writer
+  module: @static-pages/twig-writer
   args:
     view: content.html.twig
     viewsDir: path/to/views/folder
@@ -110,25 +114,21 @@ controller: ./controllers/my-controller.js
 
 #### Sample with multiple routes
 ```yaml
-- from:
-    reader: @static-pages/markdown-reader
-    args:
-      cwd: pages
-      pattern: **/*.md
+- from: @static-pages/markdown-reader
   to:
-    writer: @static-pages/twig-writer
+    module: @static-pages/twig-writer
     args:
       view: content.html.twig
       viewsDir: path/to/views/folder
       outDir: path/to/output/folder
   controller: ./controllers/my-pages-controller.js
 - from:
-    reader: @static-pages/yaml-reader
+    module: @static-pages/yaml-reader
     args:
       cwd: home
       pattern: *.yaml
   to:
-    writer: @static-pages/twig-writer
+    module: @static-pages/twig-writer
     args:
       view: home.html.twig
       viewsDir: path/to/views/folder
@@ -136,7 +136,7 @@ controller: ./controllers/my-controller.js
   controller: ./controllers/my-home-controller.js
 ```
 
-> Controllers can be stored along with the \*.md/\*.yaml/data files in your local repository.
+> Tip: Controllers can be stored along with the \*.md/\*.yaml/data files in your local repository.
 
 ## Missing a feature?
 Create an issue describing your needs. If it fits the scope of the project I will implement it or you can implement it your own and submit a pull request.

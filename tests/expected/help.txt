@@ -3,16 +3,16 @@ Usage: staticpages [options]
 Options:
   -v, --version                  output the current cli version
   -c, --config <path>            path to a build configuration file
-  -r, --from <package>           import 'default' or 'cli' from this package as
+  -f, --from <package>           import 'default' or 'cli' from this package as
                                  the reader
   -a, --from-args <JSON-string>  arguments passed to reader; provide in JSON
                                  format
-  -w, --to <package>             import 'default' or 'cli' from this package as
+  -t, --to <package>             import 'default' or 'cli' from this package as
                                  the writer
   -A, --to-args <JSON-string>    arguments passed to writer; provide in JSON
                                  format
   -s, --controller <package>     controller that can process the input data
                                  before rendering
-  -t, --context <JSON-string>    additional object that will be passed to the
+  -x, --context <JSON-string>    additional object that will be passed to the
                                  controller as 'this'
   -h, --help                     display help for command
