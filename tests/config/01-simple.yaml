@@ -1,4 +1,2 @@
-from:
-  reader: ./lib/reader
-to:
-  writer: ./lib/writer
+from: ./lib/reader
+to: ./lib/writer
