@@ -1,0 +1,7 @@
+OUTPUT BEGIN --
+{
+    "source": "page2.json",
+    "foo": "baz",
+    "addedPropertyByController": true
+}
+OUTPUT END ---

@@ -1,0 +1,7 @@
+OUTPUT BEGIN --
+{
+    "source": "page1.json",
+    "foo": "bar",
+    "addedPropertyByController": true
+}
+OUTPUT END ---

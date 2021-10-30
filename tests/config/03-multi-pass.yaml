@@ -1,0 +1,10 @@
+- from:
+    module: ./lib/reader-file
+    args:
+      file: page1.json
+  to: ./lib/writer
+- from:
+    module: ./lib/reader-file
+    args:
+      file: page2.json
+  to: ./lib/writer

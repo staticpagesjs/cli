@@ -11,7 +11,7 @@ function spawnCli(args = [], env = null) {
 
 function execute(args = [], opts = {}) {
   const { env = null } = opts;
-  
+
   const childProcess = spawnCli(args, env);
   childProcess.stdin.setEncoding('utf-8');
 

@@ -1,15 +1,31 @@
 const fs = require('fs');
 const path = require('path');
 
-const expectedPath = path.join(__dirname, '../expected');
-const producedPath = path.join(__dirname, '../temp');
+function getDirectoryData(baseDir, targetDir = '') {
+  const files = fs.readdirSync(path.join(baseDir, targetDir));
+  const result = {};
+  for (const file of files) {
+    const filePath = path.join(baseDir, targetDir, file);
+    const relativeFilePath = path.join(targetDir, file);
+    if (fs.statSync(filePath).isDirectory()) {
+      result[relativeFilePath] = getDirectoryData(baseDir, relativeFilePath);
+    } else {
+      result[relativeFilePath] = fs.readFileSync(filePath, 'utf-8').replace(/\r/g, '');
+    }
+  }
+  return result;
+}
+
+function getExpectedFile(...args) {
+  return fs.readFileSync(path.join(__dirname, '../expected', ...args), 'utf-8');
+}
 
 function getExpectedOutput(...args) {
-  return fs.readFileSync(path.join(expectedPath, ...args), 'utf-8');
+  return getDirectoryData(path.join(__dirname, '../expected', ...args));
 }
 
-function getProducedOutput(...args) {
-  return fs.readFileSync(path.join(producedPath, ...args), 'utf-8');
+function getProducedOutput() {
+  return getDirectoryData(path.join(__dirname, '../temp'));
 }
 
-module.exports = { getExpectedOutput, getProducedOutput };
+module.exports = { getExpectedFile, getExpectedOutput, getProducedOutput };
