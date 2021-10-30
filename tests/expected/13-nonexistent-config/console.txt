@@ -1,1 +1,1 @@
-Configuration file does not exists: 13-nonexistent-config.yaml
+Configuration file does not exists: config/13-nonexistent-config.yaml
