@@ -1,0 +1,2 @@
+- from: ./lib/reader-all
+  to: non-existing-package

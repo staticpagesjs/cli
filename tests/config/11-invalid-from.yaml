@@ -1,0 +1,2 @@
+- from: non-existing-package
+  to: ./lib/writer
