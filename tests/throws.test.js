@@ -40,3 +40,11 @@ test('12 expect invalid route key: \'to\'', async () => {
     .rejects
     .toThrow(getExpectedFile('12-invalid-to/console.txt'));
 });
+
+test('13 expect non-existent config', async () => {
+  await expect(async () => {
+    await execute(['-c', 'config/13-nonexistent-config.yaml']);
+  })
+    .rejects
+    .toThrow(getExpectedFile('13-nonexistent-config/console.txt'));
+});
