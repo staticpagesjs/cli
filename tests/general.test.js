@@ -9,7 +9,7 @@ afterEach(() => {
 test('01 it prints the help page', async () => {
   const output = await execute(['--help']);
 
-  expect(output).toStrictEqual(getExpectedFile('01-help-switch/help.txt'));
+  expect(output).toStrictEqual(getExpectedFile('01-help-switch/console.txt'));
 });
 
 test('02 simple passtrough', async () => {

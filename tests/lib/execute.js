@@ -17,7 +17,7 @@ function execute(args = [], opts = {}) {
 
   const promise = new Promise((resolve, reject) => {
     childProcess.stderr.once('data', err => {
-      reject(err.toString());
+      reject(new Error(err.toString()));
     });
     childProcess.on('error', reject);
     childProcess.stdout.pipe(
