@@ -40,7 +40,12 @@ $ staticpages --config staticpages.yaml
 
 ### Set configuration with CLI options:
 ```sh
-$ staticpages [-f|--from <package>] [-a|--from-args <JSON-string>] [-t|--to <package>] [-A|--to-args <JSON-string>] [-s|--controller <package>] [-x|--context <JSON-string>]
+$ staticpages [-f|--from <package>]
+              [-a|--from-args <JSON-string>]
+              [-t|--to <package>]
+              [-A|--to-args <JSON-string>]
+              [-s|--controller <package>]
+              [-x|--context <JSON-string>]
 ```
 
 Example:
@@ -52,7 +57,9 @@ $ staticpages --from @static-pages/markdown-reader \
               --controller ./controllers/my-pages-controller.js
 ```
 
-> Notice: The second form only allows to define one route.
+> Tip: Use double quotes in CLI (eg. in package.json scripts) since its both supported on windows and linux. This seems counter intuitive with JSON double quotes but necesary if you want cross-platform compatibility.
+
+> Note: Using CLI params to provide configuration only allows to define one route and does not allow to set the imported factory function name of readers/writers. Create a configuration file if you need advanced options.
 
 ## Configuration file format
 
@@ -85,16 +92,15 @@ interface Route {
 
 The `from` property:
 - `from.module` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns an `Iterable` or an `AsyncIterable`.
+- `from.import` defines the imported factory function name. By default the `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
 - `from.args` is passed to the reader factory function as arguments. If args is not an array, it is converted to an array.
-- `from.import` defines the imported factory function name.
 
 The `to` property:
 - `to.module` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns a `render(data)` function.
+- `to.import` defines the imported factory function name. By default the `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
 - `to.args` is passed to the writer factory function as arguments. If args is not an array, it is converted to an array.
-- `to.import` defines the imported factory function name.
 
-The `controller` property is a string that resolves to an npm package or a local commonjs module. Can be omitted.
-
+The `controller` property is a string that resolves to an npm package or a local commonjs module. Can be omitted. By default the `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
 
 #### Sample with a single route
 ```yaml
