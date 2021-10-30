@@ -3,11 +3,11 @@ Usage: staticpages [options]
 Options:
   -v, --version                  output the current cli version
   -c, --config <path>            path to a build configuration file
-  -f, --from <package>           import 'default' or 'cli' from this package as
+  -f, --from <package>           import 'cli' or 'default' from this package as
                                  the reader
   -a, --from-args <JSON-string>  arguments passed to reader; provide in JSON
                                  format
-  -t, --to <package>             import 'default' or 'cli' from this package as
+  -t, --to <package>             import 'cli' or 'default' from this package as
                                  the writer
   -A, --to-args <JSON-string>    arguments passed to writer; provide in JSON
                                  format
