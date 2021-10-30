@@ -67,9 +67,10 @@ const importCliModule = (file: any, preferredImport: string = 'cli'): unknown =>
  * @returns Proper route definition accepted by static-pages/core.
  */
 async function prepareRoute(route: any): Promise<Route> {
+  assertType('route', route, 'object');
+
   const { from, to, controller, ...rest } = route;
 
-  assertType('route', route, 'object');
   assertType('route.from', route.from, 'object', 'string');
   assertType('route.to', route.to, 'object', 'string');
 
