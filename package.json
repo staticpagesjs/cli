@@ -1,6 +1,6 @@
 {
   "name": "@static-pages/cli",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "CLI tool for the static pages generator.",
   "main": "index.js",
   "bin": {
