@@ -51,11 +51,12 @@ const ensureArray = (x: unknown): unknown[] => Array.isArray(x) ? x : [x];
  */
 const importCliModule = (file: string, preferredImport = 'cli'): unknown => {
 	try {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const mod: any = importFrom(process.cwd(), file);
 		if (mod[preferredImport]) return mod[preferredImport];
 		if (mod.default) return mod.default;
 		return mod;
-	} catch (error: any) {
+	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
 		throw new Error(`Failed to load module '${file}': ${error.message || error}\n${error.stack ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
 	}
 };
@@ -66,6 +67,7 @@ const importCliModule = (file: string, preferredImport = 'cli'): unknown => {
  * @param route CLI route definition where properties are strings and needs to be resolved to its corresponding types.
  * @returns Proper route definition accepted by static-pages/core.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function prepareRoute(route: any): Promise<Route> {
 	assertType('route', route, 'object');
 
@@ -134,7 +136,7 @@ function routeFromFile(file: string): Promise<Route[]> {
 			ensureArray(yaml.load(fs.readFileSync(file, 'utf-8')))
 				.map(x => prepareRoute(x))
 		);
-	} catch (error: any) {
+	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
 		throw new Error(`Could not prepare configuration: ${error.message || error}`);
 	}
 }
@@ -177,21 +179,21 @@ const { config, from, fromArgs, to, toArgs, controller, context } = opts;
 	let fromArgsParsed = undefined;
 	try {
 		if (fromArgs) fromArgsParsed = JSON.parse(fromArgs);
-	} catch (error: any) {
+	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
 		throw new Error(`Could not parse --from-args: ${error.message || error}`);
 	}
 
 	let toArgsParsed = undefined;
 	try {
 		if (toArgs) toArgsParsed = JSON.parse(toArgs);
-	} catch (error: any) {
+	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
 		throw new Error(`Could not parse --to-args: ${error.message || error}`);
 	}
 
 	let contextParsed = undefined;
 	try {
 		if (context) contextParsed = JSON.parse(context);
-	} catch (error: any) {
+	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
 		throw new Error(`Could not parse --context: ${error.message || error}`);
 	}
 
@@ -211,5 +213,5 @@ const { config, from, fromArgs, to, toArgs, controller, context } = opts;
 
 })()
 	.catch(
-		(error: any) => { console.error(error.message || error); }
+		(error: any) => { console.error(error.message || error); } // eslint-disable-line @typescript-eslint/no-explicit-any
 	);
