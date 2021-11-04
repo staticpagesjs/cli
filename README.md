@@ -67,10 +67,10 @@ Can be in JSON or YAML format. It must contain one or more `Route` entries (in a
 
 A `Route` defines
 - a **data source** (`from`),
-- a **controller** (`controller`) where your data can be transformed
-- and a **destination** (`to`) which will render the final page.
+- a **controller** (`controller`) where your data can be transformed and
+- a **destination** (`to`) which will render the final page.
 
-Additional properties can be added to the `Route`, these properties will be accessible in the `controller` via the `this` context.
+> Additional properties can be added to the `Route`, these properties will be accessible in the `controller` via the `this` context.
 
 Formally:
 ```ts
