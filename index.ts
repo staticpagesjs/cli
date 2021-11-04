@@ -9,16 +9,16 @@ import staticPages, { Route } from '@static-pages/core';
 const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
 
 program
-  .name(Object.keys(pkg.bin)[0])
-  .version(pkg.version, '-v, --version', 'output the current cli version')
-  .option('-c, --config <path>', 'path to a build configuration file')
-  .option('-f, --from <package>', 'import \'cli\' or \'default\' from this package as the reader')
-  .option('-a, --from-args <JSON-string>', 'arguments passed to reader; provide in JSON format')
-  .option('-t, --to <package>', 'import \'cli\' or \'default\' from this package as the writer')
-  .option('-A, --to-args <JSON-string>', 'arguments passed to writer; provide in JSON format')
-  .option('-s, --controller <package>', 'controller that can process the input data before rendering')
-  .option('-x, --context <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
-  .parse();
+	.name(Object.keys(pkg.bin)[0])
+	.version(pkg.version, '-v, --version', 'output the current cli version')
+	.option('-c, --config <path>', 'path to a build configuration file')
+	.option('-f, --from <package>', 'import \'cli\' or \'default\' from this package as the reader')
+	.option('-a, --from-args <JSON-string>', 'arguments passed to reader; provide in JSON format')
+	.option('-t, --to <package>', 'import \'cli\' or \'default\' from this package as the writer')
+	.option('-A, --to-args <JSON-string>', 'arguments passed to writer; provide in JSON format')
+	.option('-s, --controller <package>', 'controller that can process the input data before rendering')
+	.option('-x, --context <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
+	.parse();
 
 /**
  * Ensures a variable has the desired type.
@@ -27,10 +27,10 @@ program
  * @param x The variable to check.
  * @param desiredType The desired type.
  */
-const assertType = (name: string, x: any, ...desiredType: string[]): void => {
-  const actualType = typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
-  if (!desiredType.includes(actualType))
-    throw new Error(`'${name}' type mismatch, expected '${desiredType.join("', '")}', got '${actualType}'.`);
+const assertType = (name: string, x: unknown, ...desiredType: string[]): void => {
+	const actualType = typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
+	if (!desiredType.includes(actualType))
+		throw new Error(`'${name}' type mismatch, expected '${desiredType.join('\', \'')}', got '${actualType}'.`);
 };
 
 /**
@@ -40,7 +40,7 @@ const assertType = (name: string, x: any, ...desiredType: string[]): void => {
  * @param x Any object.
  * @returns Array.
  */
-const ensureArray = (x: any): unknown[] => Array.isArray(x) ? x : [x];
+const ensureArray = (x: unknown): unknown[] => Array.isArray(x) ? x : [x];
 
 /**
  * Imports a CommonJS module, relative from the process.cwd().
@@ -49,15 +49,15 @@ const ensureArray = (x: any): unknown[] => Array.isArray(x) ? x : [x];
  * @param preferredImport Preferred import, if not exists fallbacks to default, then a cjs function export.
  * @returns Module exports.
  */
-const importCliModule = (file: any, preferredImport: string = 'cli'): unknown => {
-  try {
-    const mod: any = importFrom(process.cwd(), file);
-    if (mod[preferredImport]) return mod[preferredImport];
-    if (mod.default) return mod.default;
-    return mod;
-  } catch (error: any) {
-    throw new Error(`Failed to load module '${file}': ${error.message || error}\n${error.stack ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
-  }
+const importCliModule = (file: string, preferredImport = 'cli'): unknown => {
+	try {
+		const mod: any = importFrom(process.cwd(), file);
+		if (mod[preferredImport]) return mod[preferredImport];
+		if (mod.default) return mod.default;
+		return mod;
+	} catch (error: any) {
+		throw new Error(`Failed to load module '${file}': ${error.message || error}\n${error.stack ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
+	}
 };
 
 /**
@@ -67,56 +67,56 @@ const importCliModule = (file: any, preferredImport: string = 'cli'): unknown =>
  * @returns Proper route definition accepted by static-pages/core.
  */
 async function prepareRoute(route: any): Promise<Route> {
-  assertType('route', route, 'object');
+	assertType('route', route, 'object');
 
-  const { from, to, controller, ...rest } = route;
+	const { from, to, controller, ...rest } = route;
 
-  assertType('route.from', route.from, 'object', 'string');
-  assertType('route.to', route.to, 'object', 'string');
+	assertType('route.from', route.from, 'object', 'string');
+	assertType('route.to', route.to, 'object', 'string');
 
-  const fromModuleKey = from && typeof from === 'object' ? 'route.from.module' : 'route.from';
-  const fromModuleName = from && typeof from === 'object' ? from.module : from;
-  const fromImportName = from && typeof from === 'object' ? from.import : 'cli';
-  const fromArgs = typeof from === 'object' ? from.args : undefined;
+	const fromModuleKey = from && typeof from === 'object' ? 'route.from.module' : 'route.from';
+	const fromModuleName = from && typeof from === 'object' ? from.module : from;
+	const fromImportName = from && typeof from === 'object' ? from.import : 'cli';
+	const fromArgs = typeof from === 'object' ? from.args : undefined;
 
-  const toModuleKey = to && typeof to === 'object' ? 'route.to.module' : 'route.to';
-  const toModuleName = to && typeof to === 'object' ? to.module : to;
-  const toImportName = to && typeof to === 'object' ? to.import : 'cli';
-  const toArgs = to && typeof to === 'object' ? to.args : undefined;
+	const toModuleKey = to && typeof to === 'object' ? 'route.to.module' : 'route.to';
+	const toModuleName = to && typeof to === 'object' ? to.module : to;
+	const toImportName = to && typeof to === 'object' ? to.import : 'cli';
+	const toArgs = to && typeof to === 'object' ? to.args : undefined;
 
-  assertType(fromModuleKey, fromModuleName, 'string');
-  assertType(toModuleKey, toModuleName, 'string');
+	assertType(fromModuleKey, fromModuleName, 'string');
+	assertType(toModuleKey, toModuleName, 'string');
 
-  const controllerModuleName = controller && typeof controller === 'object' ? controller.module : controller;
-  const controllerImportName = controller && typeof controller === 'object' ? controller.import : 'cli';
+	const controllerModuleName = controller && typeof controller === 'object' ? controller.module : controller;
+	const controllerImportName = controller && typeof controller === 'object' ? controller.import : 'cli';
 
-  // Construct the route object accepted by the core.
-  const fromFactory = importCliModule(fromModuleName, fromImportName);
-  if (typeof fromFactory !== 'function')
-    throw new Error(`'${fromModuleKey}' of '${fromModuleName}' does not exports a function.`);
+	// Construct the route object accepted by the core.
+	const fromFactory = importCliModule(fromModuleName, fromImportName);
+	if (typeof fromFactory !== 'function')
+		throw new Error(`'${fromModuleKey}' of '${fromModuleName}' does not exports a function.`);
 
-  const fromIterable = await fromFactory.apply(undefined, ensureArray(fromArgs));
-  if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
-    throw new Error(`'${fromModuleKey}' of '${fromModuleName}' does not provide an iterable or async iterable.`);
+	const fromIterable = await fromFactory(...ensureArray(fromArgs));
+	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
+		throw new Error(`'${fromModuleKey}' of '${fromModuleName}' does not provide an iterable or async iterable.`);
 
-  const toFactory = importCliModule(toModuleName, toImportName);
-  if (typeof toFactory !== 'function')
-    throw new Error(`'${toModuleKey}' of '${toModuleName}' does not exports a function.`);
+	const toFactory = importCliModule(toModuleName, toImportName);
+	if (typeof toFactory !== 'function')
+		throw new Error(`'${toModuleKey}' of '${toModuleName}' does not exports a function.`);
 
-  const toWriter = await toFactory.apply(undefined, ensureArray(toArgs));
-  if (typeof toWriter !== 'function')
-    throw new Error(`'${toModuleKey}' of '${toModuleName}' does not provide a function after initialization.`);
+	const toWriter = await toFactory(...ensureArray(toArgs));
+	if (typeof toWriter !== 'function')
+		throw new Error(`'${toModuleKey}' of '${toModuleName}' does not provide a function after initialization.`);
 
-  const controllerFn = typeof controllerModuleName === 'string' ? importCliModule(controllerModuleName, controllerImportName) : undefined;
-  if (controllerFn && typeof controllerFn !== 'function')
-    throw new Error(`'route.controller' of '${controller}' does not provide a function.`);
+	const controllerFn = typeof controllerModuleName === 'string' ? importCliModule(controllerModuleName, controllerImportName) : undefined;
+	if (controllerFn && typeof controllerFn !== 'function')
+		throw new Error(`'route.controller' of '${controller}' does not provide a function.`);
 
-  return {
-    from: fromIterable,
-    to: toWriter,
-    controller: controllerFn,
-    ...rest,
-  };
+	return {
+		from: fromIterable,
+		to: toWriter,
+		controller: controllerFn,
+		...rest,
+	};
 }
 
 /**
@@ -126,17 +126,17 @@ async function prepareRoute(route: any): Promise<Route> {
  * @returns Route definitions.
  */
 function routeFromFile(file: string): Promise<Route[]> {
-  if (!fs.existsSync(file)) {
-    throw new Error(`Configuration file does not exists: ${file}`);
-  }
-  try {
-    return Promise.all(
-      ensureArray(yaml.load(fs.readFileSync(file, 'utf-8')))
-        .map(x => prepareRoute(x))
-    );
-  } catch (error: any) {
-    throw new Error(`Could not prepare configuration: ${error.message || error}`);
-  }
+	if (!fs.existsSync(file)) {
+		throw new Error(`Configuration file does not exists: ${file}`);
+	}
+	try {
+		return Promise.all(
+			ensureArray(yaml.load(fs.readFileSync(file, 'utf-8')))
+				.map(x => prepareRoute(x))
+		);
+	} catch (error: any) {
+		throw new Error(`Could not prepare configuration: ${error.message || error}`);
+	}
 }
 
 /**
@@ -150,66 +150,66 @@ function routeFromFile(file: string): Promise<Route[]> {
  * @returns Route definitions.
  */
 async function routeFromArgs(
-  fromModule: string,
-  fromArgs: string,
-  toModule: string,
-  toArgs: string,
-  context: Record<string, unknown>
+	fromModule: string,
+	fromArgs: string,
+	toModule: string,
+	toArgs: string,
+	context: Record<string, unknown>
 ): Promise<Route[]> {
-  return [await prepareRoute({
-    from: {
-      module: fromModule,
-      args: fromArgs,
-    },
-    to: {
-      module: toModule,
-      args: toArgs,
-    },
-    controller: controller,
-    ...context,
-  })];
+	return [await prepareRoute({
+		from: {
+			module: fromModule,
+			args: fromArgs,
+		},
+		to: {
+			module: toModule,
+			args: toArgs,
+		},
+		controller: controller,
+		...context,
+	})];
 }
 
 const opts = program.opts();
 const { config, from, fromArgs, to, toArgs, controller, context } = opts;
 
 (async () => {
-  let fromArgsParsed = undefined;
-  try {
-    if (fromArgs) fromArgsParsed = JSON.parse(fromArgs);
-  } catch (error: any) {
-    throw new Error(`Could not parse --from-args: ${error.message || error}`);
-  }
+	let fromArgsParsed = undefined;
+	try {
+		if (fromArgs) fromArgsParsed = JSON.parse(fromArgs);
+	} catch (error: any) {
+		throw new Error(`Could not parse --from-args: ${error.message || error}`);
+	}
 
-  let toArgsParsed = undefined;
-  try {
-    if (toArgs) toArgsParsed = JSON.parse(toArgs);
-  } catch (error: any) {
-    throw new Error(`Could not parse --to-args: ${error.message || error}`);
-  }
+	let toArgsParsed = undefined;
+	try {
+		if (toArgs) toArgsParsed = JSON.parse(toArgs);
+	} catch (error: any) {
+		throw new Error(`Could not parse --to-args: ${error.message || error}`);
+	}
 
-  let contextParsed = undefined;
-  try {
-    if (context) contextParsed = JSON.parse(context);
-  } catch (error: any) {
-    throw new Error(`Could not parse --context: ${error.message || error}`);
-  }
+	let contextParsed = undefined;
+	try {
+		if (context) contextParsed = JSON.parse(context);
+	} catch (error: any) {
+		throw new Error(`Could not parse --context: ${error.message || error}`);
+	}
 
-  let routes;
-  if (config) {
-    // from config file via --config
-    routes = await routeFromFile(config);
-  } else if (Object.keys(opts).length > 0) {
-    // from command line options
-    routes = await routeFromArgs(from, fromArgsParsed, to, toArgsParsed, contextParsed);
-  } else {
-    program.help();
-  }
+	let routes;
+	if (config) {
+		// from config file via --config
+		routes = await routeFromFile(config);
+	} else if (Object.keys(opts).length > 0) {
+		// from command line options
+		routes = await routeFromArgs(from, fromArgsParsed, to, toArgsParsed, contextParsed);
+	} else {
+		program.help();
+	}
 
-  // The work.
-  await staticPages(routes);
+	// The work.
+	await staticPages(routes);
 
 })()
-  .catch(
-    (error: any) => { console.error(error.message || error); }
-  );
+	.catch(
+		(error: any) => { console.error(error.message || error); }
+	);
