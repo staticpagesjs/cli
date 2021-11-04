@@ -17,7 +17,7 @@ function getDirectoryData(baseDir, targetDir = '') {
 }
 
 function getExpectedFile(...args) {
-  return fs.readFileSync(path.join(__dirname, '../expected', ...args), 'utf-8');
+  return fs.readFileSync(path.join(__dirname, '../expected', ...args), 'utf-8').replace(/\r/g, '');
 }
 
 function getExpectedOutput(...args) {
