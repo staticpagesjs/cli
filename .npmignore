@@ -3,6 +3,7 @@
 /.eslintrc.js
 /tests/
 /coverage/
+/.vscode/
 *.log
 *.tgz
 *.exe
