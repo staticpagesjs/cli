@@ -1,0 +1,5 @@
+- from: ./lib/reader-all
+  to: ./lib/writer
+  controller:
+    module: ./lib/controller-custom
+    import: myCustomController

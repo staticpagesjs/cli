@@ -47,3 +47,9 @@ test('07 controller import default() when exists', async () => {
 
   expect(getExpectedOutput('07-controller-default')).toStrictEqual(getProducedOutput());
 });
+
+test('17 controller import myCustomController() when exists', async () => {
+  await execute(['-c', 'config/17-controller-custom.yaml']);
+
+  expect(getExpectedOutput('17-controller-custom')).toStrictEqual(getProducedOutput());
+});

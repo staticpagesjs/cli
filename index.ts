@@ -74,18 +74,21 @@ async function prepareRoute(route: any): Promise<Route> {
   assertType('route.from', route.from, 'object', 'string');
   assertType('route.to', route.to, 'object', 'string');
 
-  const fromModuleKey = typeof from === 'object' ? 'route.from.module' : 'route.from';
-  const fromModuleName = typeof from === 'object' ? from.module : from;
-  const fromImportName = typeof from === 'object' ? from.import : 'cli';
+  const fromModuleKey = from && typeof from === 'object' ? 'route.from.module' : 'route.from';
+  const fromModuleName = from && typeof from === 'object' ? from.module : from;
+  const fromImportName = from && typeof from === 'object' ? from.import : 'cli';
   const fromArgs = typeof from === 'object' ? from.args : undefined;
 
-  const toModuleKey = typeof to === 'object' ? 'route.to.module' : 'route.to';
-  const toModuleName = typeof to === 'object' ? to.module : to;
-  const toImportName = typeof to === 'object' ? to.import : 'cli';
-  const toArgs = typeof to === 'object' ? to.args : undefined;
+  const toModuleKey = to && typeof to === 'object' ? 'route.to.module' : 'route.to';
+  const toModuleName = to && typeof to === 'object' ? to.module : to;
+  const toImportName = to && typeof to === 'object' ? to.import : 'cli';
+  const toArgs = to && typeof to === 'object' ? to.args : undefined;
 
   assertType(fromModuleKey, fromModuleName, 'string');
   assertType(toModuleKey, toModuleName, 'string');
+
+  const controllerModuleName = controller && typeof controller === 'object' ? controller.module : controller;
+  const controllerImportName = controller && typeof controller === 'object' ? controller.import : 'cli';
 
   // Construct the route object accepted by the core.
   const fromFactory = importCliModule(fromModuleName, fromImportName);
@@ -104,7 +107,7 @@ async function prepareRoute(route: any): Promise<Route> {
   if (typeof toWriter !== 'function')
     throw new Error(`'${toModuleKey}' of '${toModuleName}' does not provide a function after initialization.`);
 
-  const controllerFn = typeof controller === 'string' ? importCliModule(controller) : undefined;
+  const controllerFn = typeof controllerModuleName === 'string' ? importCliModule(controllerModuleName, controllerImportName) : undefined;
   if (controllerFn && typeof controllerFn !== 'function')
     throw new Error(`'route.controller' of '${controller}' does not provide a function.`);
 

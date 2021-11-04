@@ -85,22 +85,25 @@ interface Route {
         import?: string;
         args?: unknown;
     };
-    controller?: string;
+    controller?: string | {
+        module: string;
+        import?: string;
+    };
     [additionalProps: string]: unknown;
 }
 ```
 
-The `from` property:
+The `from` property can be a string describing the npm package or a local commonjs module path OR an object with the following keys:
 - `from.module` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns an `Iterable` or an `AsyncIterable`.
-- `from.import` defines the imported factory function name. By default the `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
+- `from.import` defines the imported factory function name. By default `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
 - `from.args` is passed to the reader factory function as arguments. If args is not an array, it is converted to an array.
 
-The `to` property:
+The `to` property can be a string describing the npm package or a local commonjs module path OR an object with the following keys:
 - `to.module` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns a `render(data)` function.
-- `to.import` defines the imported factory function name. By default the `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
+- `to.import` defines the imported factory function name. By default `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
 - `to.args` is passed to the writer factory function as arguments. If args is not an array, it is converted to an array.
 
-The `controller` property is a string that resolves to an npm package or a local commonjs module. Can be omitted. By default the `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
+The `controller` property can be a string that resolves to an npm package or a local commonjs module OR an object with `module` and `import` keys to also specify the imported controller function. Can be omitted. By default `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
 
 #### Sample with a single route
 ```yaml
