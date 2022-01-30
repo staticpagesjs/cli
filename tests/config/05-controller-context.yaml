@@ -2,4 +2,5 @@
     module: ./lib/reader-all
   to: ./lib/writer
   controller: ./lib/controller-context
-  configValue: foo bar
+  variables:
+    configValue: foo bar

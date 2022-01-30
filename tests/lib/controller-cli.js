@@ -1,5 +1,5 @@
 module.exports = {
-  cli(d) {
-    return { ...d, addedPropertyByController: true };
-  }
+	cli(d) {
+		return { ...d, addedPropertyByController: true };
+	}
 };

@@ -6,28 +6,28 @@ const cliJs = path.join(__dirname, '../../index.js');
 const workingDir = path.join(__dirname, '..');
 
 function spawnCli(args = [], env = null) {
-  return spawn('node', [cliJs, ...args], { NODE_ENV: 'test', cwd: workingDir, ...env });
+	return spawn('node', [cliJs, ...args], { NODE_ENV: 'test', cwd: workingDir, ...env });
 }
 
 function execute(args = [], opts = {}) {
-  const { env = null } = opts;
+	const { env = null } = opts;
 
-  const childProcess = spawnCli(args, env);
-  childProcess.stdin.setEncoding('utf-8');
+	const childProcess = spawnCli(args, env);
+	childProcess.stdin.setEncoding('utf-8');
 
-  const promise = new Promise((resolve, reject) => {
-    childProcess.stderr.once('data', err => {
-      reject(new Error(err.toString()));
-    });
-    childProcess.on('error', reject);
-    childProcess.stdout.pipe(
-      concat(result => {
-        resolve(result.toString());
-      })
-    );
-  });
+	const promise = new Promise((resolve, reject) => {
+		childProcess.stderr.once('data', err => {
+			reject(new Error(err.toString()));
+		});
+		childProcess.on('error', reject);
+		childProcess.stdout.pipe(
+			concat(result => {
+				resolve(result.toString());
+			})
+		);
+	});
 
-  return promise;
+	return promise;
 }
 
 module.exports = { execute };

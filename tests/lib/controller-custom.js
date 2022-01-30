@@ -1,5 +1,5 @@
 module.exports = {
-  myCustomController(d) {
-    return { ...d, addedPropertyByController: true };
-  }
+	myCustomController(d) {
+		return { ...d, addedPropertyByController: true };
+	}
 };

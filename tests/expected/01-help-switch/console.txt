@@ -13,6 +13,6 @@ Options:
                                  format
   -s, --controller <package>     controller that can process the input data
                                  before rendering
-  -x, --context <JSON-string>    additional object that will be passed to the
+  -x, --variables <JSON-string>  additional object that will be passed to the
                                  controller as 'this'
   -h, --help                     display help for command

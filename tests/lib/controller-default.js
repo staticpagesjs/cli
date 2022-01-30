@@ -1,5 +1,5 @@
 module.exports = {
-  default(d) {
-    return { ...d, addedPropertyByController: true };
-  }
+	default(d) {
+		return { ...d, addedPropertyByController: true };
+	}
 };

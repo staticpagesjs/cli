@@ -4,7 +4,7 @@ import { program } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import * as importFrom from 'import-from';
-import staticPages, { Route } from '@static-pages/core';
+import staticPages, { Route, Controller } from '@static-pages/core';
 
 const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
 
@@ -17,8 +17,10 @@ program
 	.option('-t, --to <package>', 'import \'cli\' or \'default\' from this package as the writer')
 	.option('-A, --to-args <JSON-string>', 'arguments passed to writer; provide in JSON format')
 	.option('-s, --controller <package>', 'controller that can process the input data before rendering')
-	.option('-x, --context <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
+	.option('-x, --variables <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
 	.parse();
+
+const args = program.opts();
 
 /**
  * Ensures a variable has the desired type.
@@ -32,6 +34,13 @@ const assertType = (name: string, x: unknown, ...desiredType: string[]): void =>
 	if (!desiredType.includes(actualType))
 		throw new Error(`'${name}' type mismatch, expected '${desiredType.join('\', \'')}', got '${actualType}'.`);
 };
+
+/**
+ * Optimistic implementation for a type guard to test for `Controller` types.
+ *
+ * @param fn: Subject to test
+ */
+const isController = (fn: unknown): fn is Controller => typeof fn === 'function';
 
 /**
  * Ensures that the given object is an array.
@@ -56,8 +65,8 @@ const importCliModule = (file: string, preferredImport = 'cli'): unknown => {
 		if (mod[preferredImport]) return mod[preferredImport];
 		if (mod.default) return mod.default;
 		return mod;
-	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-		throw new Error(`Failed to load module '${file}': ${error.message || error}\n${error.stack ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
+	} catch (error: unknown) {
+		throw new Error(`Failed to load module '${file}': ${error instanceof Error ? error.message : error}\n${error instanceof Error ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
 	}
 };
 
@@ -67,14 +76,14 @@ const importCliModule = (file: string, preferredImport = 'cli'): unknown => {
  * @param route CLI route definition where properties are strings and needs to be resolved to its corresponding types.
  * @returns Proper route definition accepted by static-pages/core.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function prepareRoute(route: any): Promise<Route> {
+async function prepareRoute(route: unknown): Promise<Route> {
 	assertType('route', route, 'object');
 
-	const { from, to, controller, ...rest } = route;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const { from, to, controller, variables } = <any>route;
 
-	assertType('route.from', route.from, 'object', 'string');
-	assertType('route.to', route.to, 'object', 'string');
+	assertType('route.from', from, 'object', 'string');
+	assertType('route.to', to, 'object', 'string');
 
 	const fromModuleKey = from && typeof from === 'object' ? 'route.from.module' : 'route.from';
 	const fromModuleName = from && typeof from === 'object' ? from.module : from;
@@ -110,14 +119,14 @@ async function prepareRoute(route: any): Promise<Route> {
 		throw new Error(`'${toModuleKey}' of '${toModuleName}' does not provide a function after initialization.`);
 
 	const controllerFn = typeof controllerModuleName === 'string' ? importCliModule(controllerModuleName, controllerImportName) : undefined;
-	if (controllerFn && typeof controllerFn !== 'function')
+	if (typeof controllerFn !== 'undefined' && !isController(controllerFn))
 		throw new Error(`'route.controller' of '${controller}' does not provide a function.`);
 
 	return {
 		from: fromIterable,
 		to: toWriter,
 		controller: controllerFn,
-		...rest,
+		variables: variables,
 	};
 }
 
@@ -127,7 +136,7 @@ async function prepareRoute(route: any): Promise<Route> {
  * @param file Path to the configuration file.
  * @returns Route definitions.
  */
-function routeFromFile(file: string): Promise<Route[]> {
+function routesFromFile(file: string): Promise<Route[]> {
 	if (!fs.existsSync(file)) {
 		throw new Error(`Configuration file does not exists: ${file}`);
 	}
@@ -136,74 +145,64 @@ function routeFromFile(file: string): Promise<Route[]> {
 			ensureArray(yaml.load(fs.readFileSync(file, 'utf-8')))
 				.map(x => prepareRoute(x))
 		);
-	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-		throw new Error(`Could not prepare configuration: ${error.message || error}`);
+	} catch (error: unknown) {
+		throw new Error(`Could not prepare configuration: ${error instanceof Error ? error.message : error}`);
 	}
 }
 
 /**
- * Reads configuration provided by the cli.
+ * Reads configuration provided by cli args.
  *
- * @param fromModule Package name of the reader.
- * @param fromArgs Args passed to the reader factory.
- * @param toModule Package name of the writer.
- * @param toArgs Args passed to the writer factory.
- * @param context Context params of the controller.
+ * @param args Arguments of the app.
  * @returns Route definitions.
  */
-async function routeFromArgs(
-	fromModule: string,
-	fromArgs: string,
-	toModule: string,
-	toArgs: string,
-	context: Record<string, unknown>
-): Promise<Route[]> {
-	return [await prepareRoute({
-		from: {
-			module: fromModule,
-			args: fromArgs,
-		},
-		to: {
-			module: toModule,
-			args: toArgs,
-		},
-		controller: controller,
-		...context,
-	})];
-}
+async function routesFromArgs(args: unknown): Promise<Route[]> {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const { from, fromArgs, to, toArgs, controller, variables } = <any>args;
 
-const opts = program.opts();
-const { config, from, fromArgs, to, toArgs, controller, context } = opts;
-
-(async () => {
 	let fromArgsParsed = undefined;
 	try {
 		if (fromArgs) fromArgsParsed = JSON.parse(fromArgs);
-	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-		throw new Error(`Could not parse --from-args: ${error.message || error}`);
+	} catch (error: unknown) {
+		throw new Error(`Could not parse --from-args: ${error instanceof Error ? error.message : error}`);
 	}
 
 	let toArgsParsed = undefined;
 	try {
 		if (toArgs) toArgsParsed = JSON.parse(toArgs);
-	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-		throw new Error(`Could not parse --to-args: ${error.message || error}`);
+	} catch (error: unknown) {
+		throw new Error(`Could not parse --to-args: ${error instanceof Error ? error.message : error}`);
 	}
 
-	let contextParsed = undefined;
+	let variablesParsed = undefined;
 	try {
-		if (context) contextParsed = JSON.parse(context);
-	} catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-		throw new Error(`Could not parse --context: ${error.message || error}`);
+		if (variables) variablesParsed = JSON.parse(variables);
+	} catch (error: unknown) {
+		throw new Error(`Could not parse --variables: ${error instanceof Error ? error.message : error}`);
 	}
 
+	return [await prepareRoute({
+		from: {
+			module: from,
+			args: fromArgsParsed,
+		},
+		to: {
+			module: to,
+			args: toArgsParsed,
+		},
+		controller: controller,
+		variables: variablesParsed,
+	})];
+}
+
+(async () => {
 	let routes;
-	if (config) {
+	if (args.config) {
 		// from config file via --config
-		routes = await routeFromFile(config);
-	} else if (Object.keys(opts).length > 0) {
+		routes = await routesFromFile(args.config);
+	} else if (Object.keys(args).length > 0) {
 		// from command line options
-		routes = await routeFromArgs(from, fromArgsParsed, to, toArgsParsed, contextParsed);
+		routes = await routesFromArgs(args);
 	} else {
 		program.help();
 	}
@@ -212,6 +211,4 @@ const { config, from, fromArgs, to, toArgs, controller, context } = opts;
 	await staticPages(routes);
 
 })()
-	.catch(
-		(error: any) => { console.error(error.message || error); } // eslint-disable-line @typescript-eslint/no-explicit-any
-	);
+	.catch(console.error);
