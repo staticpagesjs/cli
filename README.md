@@ -59,6 +59,8 @@ $ staticpages --from @static-pages/markdown-reader \
 
 > Note: Using CLI params to provide configuration only allows to define one route and does not allow to set the imported factory function name of readers/writers. Create a configuration file if you need advanced options.
 
+> Tip: This tool uses [.env](https://www.npmjs.com/package/dotenv) files. Controlles can access these env variables in the usual way via `process.env`.
+
 > Tip: Use double quotes when writing command line tasks (eg. in package.json scripts); its both supported on windows and linux. This seems hard and requires a lot of escaping because of the JSON double quotes but helps with cross-platform compatibility.
 
 ## Configuration file format
