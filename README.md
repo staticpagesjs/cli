@@ -45,7 +45,7 @@ $ staticpages [-f|--from <package>]
               [-t|--to <package>]
               [-A|--to-args <JSON-string>]
               [-s|--controller <package>]
-              [-x|--context <JSON-string>]
+              [-x|--variables <JSON-string>]
 ```
 
 Example:
@@ -57,9 +57,9 @@ $ staticpages --from @static-pages/markdown-reader \
               --controller ./controllers/my-pages-controller.js
 ```
 
-> Tip: Use double quotes in CLI (eg. in package.json scripts) since its both supported on windows and linux. This seems counter intuitive with JSON double quotes but necesary if you want cross-platform compatibility.
-
 > Note: Using CLI params to provide configuration only allows to define one route and does not allow to set the imported factory function name of readers/writers. Create a configuration file if you need advanced options.
+
+> Tip: Use double quotes when writing command line tasks (eg. in package.json scripts); its both supported on windows and linux. This seems hard and requires a lot of escaping because of the JSON double quotes but helps with cross-platform compatibility.
 
 ## Configuration file format
 
@@ -70,7 +70,7 @@ A `Route` defines
 - a **controller** (`controller`) where your data can be transformed and
 - a **destination** (`to`) which will render the final page.
 
-> Additional properties can be added to the `Route`, these properties will be accessible in the `controller` via the `this` context.
+> Additional variables can be added to the `Route`, these properties will be accessible in the `controller` via the `this` context.
 
 Formally:
 ```ts
@@ -89,7 +89,9 @@ interface Route {
         module: string;
         import?: string;
     };
-    [additionalProps: string]: unknown;
+    variables?: {
+      [additionalProps: string]: unknown;
+    };
 }
 ```
 
