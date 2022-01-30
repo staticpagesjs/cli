@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import 'dotenv/config';
+
 import { program } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
