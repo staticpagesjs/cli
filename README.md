@@ -151,5 +151,32 @@ controller: ./controllers/my-controller.js
 
 > Tip: Controllers can be stored along with the \*.md/\*.yaml/data files in your local repository.
 
+## Do you really need this CLI tool?
+
+Its possible to use the `@static-pages/core` package alone for automated builds if you keep your configuration in a js file. This eliminates the complexity of this CLI tool. See below an example, start it like `node build.js`:
+
+```js
+// ./build.js
+const staticPages = require('@static-pages/core').default;
+const markdownReader = require('@static-pages/markdown-reader').default;
+const twigWriter = require('@static-pages/twig-writer').default;
+
+staticPages([{
+  from: markdownReader({
+    cwd: 'pages',
+    pattern: '**/*.md',
+  }),
+  to: twigWriter({
+    view: 'content.html.twig',
+    viewsDir: 'path/to/views/folder',
+    outDir: 'path/to/output/folder',
+  }),
+  controller: function(data) {
+    data.commitHash = yourGetCommitHashFn();
+    return data;
+  }
+}]).catch(console.error);
+```
+
 ## Missing a feature?
 Create an issue describing your needs. If it fits the scope of the project I will implement it or you can implement it your own and submit a pull request.
