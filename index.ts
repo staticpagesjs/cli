@@ -17,9 +17,9 @@ program
 	.option('-f, --from <package>', 'import \'cli\' or \'default\' from this package as the reader')
 	.option('-a, --from-args <JSON-string>', 'arguments passed to reader; provide in JSON format')
 	.option('-t, --to <package>', 'import \'cli\' or \'default\' from this package as the writer')
-	.option('-A, --to-args <JSON-string>', 'arguments passed to writer; provide in JSON format')
+	.option('-b, --to-args <JSON-string>', 'arguments passed to writer; provide in JSON format')
 	.option('-s, --controller <package>', 'controller that can process the input data before rendering')
-	.option('-x, --variables <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
+	.option('-v, --variables <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
 	.parse();
 
 const args = program.opts();
