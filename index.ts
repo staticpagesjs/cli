@@ -12,7 +12,7 @@ const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
 
 program
 	.name(Object.keys(pkg.bin)[0])
-	.version(pkg.version, '-v, --version', 'output the current cli version')
+	.version(pkg.version, '--version', 'output the current cli version')
 	.option('-c, --config <path>', 'path to a build configuration file')
 	.option('-f, --from <package>', 'import \'cli\' or \'default\' from this package as the reader')
 	.option('-a, --from-args <JSON-string>', 'arguments passed to reader; provide in JSON format')
