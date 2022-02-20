@@ -1,4 +1,3 @@
-const { afterEach, test, expect, } = require('jest');
 const rimraf = require('rimraf');
 const { execute } = require('./lib/execute');
 const { getExpectedOutput, getProducedOutput } = require('./lib/output');
@@ -20,7 +19,7 @@ test('15 controller from cli input', async () => {
 });
 
 test('16 controller context value acces from cli input', async () => {
-	await execute(['-f', './lib/reader-all', '-t', './lib/writer', '-s', './lib/controller-context', '-x', '{"configValue":"foo bar"}']);
+	await execute(['-f', './lib/reader-all', '-t', './lib/writer', '-s', './lib/controller-context', '-v', '{"configValue":"foo bar"}']);
 
 	expect(getExpectedOutput('16-controller-context-cli')).toStrictEqual(getProducedOutput());
 });

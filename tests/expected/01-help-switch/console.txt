@@ -1,7 +1,7 @@
 Usage: staticpages [options]
 
 Options:
-  -v, --version                  output the current cli version
+  --version                      output the current cli version
   -c, --config <path>            path to a build configuration file
   -f, --from <package>           import 'cli' or 'default' from this package as
                                  the reader
@@ -9,10 +9,10 @@ Options:
                                  format
   -t, --to <package>             import 'cli' or 'default' from this package as
                                  the writer
-  -A, --to-args <JSON-string>    arguments passed to writer; provide in JSON
+  -b, --to-args <JSON-string>    arguments passed to writer; provide in JSON
                                  format
   -s, --controller <package>     controller that can process the input data
                                  before rendering
-  -x, --variables <JSON-string>  additional object that will be passed to the
+  -v, --variables <JSON-string>  additional object that will be passed to the
                                  controller as 'this'
   -h, --help                     display help for command

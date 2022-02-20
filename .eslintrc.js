@@ -29,5 +29,6 @@ module.exports = {
 			'error',
 			'always'
 		]
-	}
+	},
+	'ignorePatterns': ['tests/**'],
 };

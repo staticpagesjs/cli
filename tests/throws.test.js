@@ -1,4 +1,3 @@
-const { test, expect } = require('jest');
 const { execute } = require('./lib/execute');
 const { getExpectedFile } = require('./lib/output');
 

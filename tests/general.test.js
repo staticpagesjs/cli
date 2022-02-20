@@ -1,4 +1,3 @@
-const { afterEach, test, expect, } = require('jest');
 const rimraf = require('rimraf');
 const { execute } = require('./lib/execute');
 const { getExpectedFile, getExpectedOutput, getProducedOutput } = require('./lib/output');
