@@ -37,7 +37,7 @@ There are two usage patterns available, one is to create a configuration file an
 
 ### Load configuration from a file:
 ```shell
-$ staticpages [-c|--config <path>]
+$ staticpages [-c|--config <file>]
 ```
 
 Example:
@@ -47,28 +47,30 @@ $ staticpages --config staticpages.yaml
 
 ### Set configuration with CLI options:
 ```shell
-$ staticpages [-f|--from <package>]
-              [-a|--from-args <JSON-string>]
-              [-t|--to <package>]
-              [-b|--to-args <JSON-string>]
-              [-s|--controller <package>]
-              [-v|--variables <JSON-string>]
+$ staticpages [--from <package>]
+              [--from.module <name>]
+              [--from.export <name>]
+              [--from.args.* <value>]
+              [--to <package>]
+              [--to.module <name>]
+              [--to.export <name>]
+              [--to.args.* <value>]
+              [--controller <package>]
+              [--controller.module <package>]
+              [--controller.export <name>]
+              [--variables.* <value>]
 ```
 
 Example:
 ```shell
-$ staticpages --from @static-pages/markdown-reader \
-              --from-args "{\"cwd\":\"pages\"}" \
-              --to @static-pages/twig-writer \
-              --to-args "{\"view\":\"content.html.twig\"}" \
+$ staticpages --from.module @static-pages/markdown-reader \
+              --from.args.cwd pages \
+              --to.module @static-pages/twig-writer \
+              --to.args.view content.html.twig \
               --controller ./controllers/my-pages-controller.js
 ```
 
-> Note: Using CLI params to provide configuration only allows to define one route and does not allow to set the imported factory function name of readers/writers. Create a configuration file if you need advanced options.
-
 > Tip: This tool uses [.env](https://www.npmjs.com/package/dotenv) files. Controlles can access these env variables in the usual way via `process.env`.
-
-> Tip: Use double quotes when writing command line tasks (eg. in package.json scripts); its both supported on windows and linux. This seems hard and requires a lot of escaping because of the JSON double quotes but helps with cross-platform compatibility.
 
 ## Configuration file format
 
@@ -86,17 +88,17 @@ Formally:
 interface Route {
     from: string | {
         module: string;
-        import?: string;
+        export?: string;
         args?: unknown;
     };
     to: string | {
         module: string;
-        import?: string;
+        export?: string;
         args?: unknown;
     };
     controller?: string | {
         module: string;
-        import?: string;
+        export?: string;
     };
     variables?: {
       [additionalProps: string]: unknown;
@@ -104,17 +106,21 @@ interface Route {
 }
 ```
 
-The `from` property can be a string describing the npm package or a local commonjs module path OR an object with the following keys:
-- `from.module` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns an `Iterable` or an `AsyncIterable`.
-- `from.import` defines the imported factory function name. By default `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
+The `from` property can be a string to an npm package or a local commonjs module OR an object with the following keys:
+- `from.module` is a string to an npm package or a local commonjs module. The module must export a factory function that returns an `Iterable` or an `AsyncIterable`.
+- `from.export` defines the exported factory function name. By default `cli` is used, if not exists fallbacks to `default`, if not exists then fallbacks to `module.exports`.
 - `from.args` is passed to the reader factory function as arguments. If args is not an array, it is converted to an array.
 
-The `to` property can be a string describing the npm package or a local commonjs module path OR an object with the following keys:
-- `to.module` is a string that resolves to an npm package or a local commonjs module. The module must export a factory function that returns a `render(data)` function.
-- `to.import` defines the imported factory function name. By default `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
+The `to` property can be a string to an npm package or a local commonjs module OR an object with the following keys:
+- `to.module` is a string to an npm package or a local commonjs module. The module must export a factory function that returns a `(data: object): void` function.
+- `to.export` defines the exported factory function name. By default `cli` is used, if not exists fallbacks to `default`, if not exists then fallbacks to `module.exports`.
 - `to.args` is passed to the writer factory function as arguments. If args is not an array, it is converted to an array.
 
-The `controller` property can be a string that resolves to an npm package or a local commonjs module OR an object with `module` and `import` keys to also specify the imported controller function. Can be omitted. By default `cli` is imported, if not exists fallbacks to `default`, if not exists then the `module.exports` is used as is.
+The `controller` property can be a string to an npm package or a local commonjs module OR an object with the following keys:
+- `controller.module` is a string to an npm package or a local commonjs module.
+- `controller.export`defines the exported factory function name. By default `cli` is used, if not exists fallbacks to `default`, if not exists then fallbacks to `module.exports`.
+
+The `variables` contains additional properties that should be accessible from the controller context (as this.&lt;variable&gt;).
 
 #### Sample with a single route
 ```yaml
