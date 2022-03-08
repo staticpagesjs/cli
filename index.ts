@@ -41,9 +41,10 @@ const unknownArgs = flattenObjectKeys(argv).filter(arg => [
 	/^config$/, /^c$/,
 	/^help$/, /^h$/,
 	/^version$/, /^v$/,
-	/^from(?:\.module|\.import|\.args\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+)?$/,
-	/^to(?:\.module|\.import|\.args\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+)?$/,
-	/^controller(?:\.module|\.import)?$/
+	/^from(?:\.module|\.export|\.args\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+)?$/,
+	/^to(?:\.module|\.export|\.args\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+)?$/,
+	/^controller(?:\.module|\.export)?$/,
+	/^variables\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+$/,
 ].every(pattern => !pattern.test(arg)));
 
 if (unknownArgs.length > 0) {
@@ -88,19 +89,17 @@ const ensureArray = (x: unknown): unknown[] => Array.isArray(x) ? x : [x];
 /**
  * Imports a CommonJS module, relative from the process.cwd().
  *
- * @param file Module path.
- * @param preferredImport Preferred import, if not exists fallbacks to default, then a cjs function export.
+ * @param moduleName Module path.
+ * @param exportName Preferred export, if not exists fallbacks to default, then a cjs function export.
  * @returns Module exports.
  */
-const importModule = (file: string, preferredImport = 'cli'): unknown => {
+const importModule = (moduleName: string, exportName = 'cli'): unknown => {
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const mod: any = importFrom(process.cwd(), file);
-		if (mod[preferredImport]) return mod[preferredImport];
-		if (mod.default) return mod.default;
-		return mod;
+		const module: any = importFrom(process.cwd(), moduleName);
+		return module[exportName] ?? module.default ?? module;
 	} catch (error: unknown) {
-		throw new Error(`Failed to load module '${file}': ${error instanceof Error ? error.message : error}\n${error instanceof Error ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
+		throw new Error(`Failed to load module '${moduleName}': ${error instanceof Error ? error.message : error}\n${error instanceof Error ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
 	}
 };
 
@@ -111,7 +110,7 @@ const importModule = (file: string, preferredImport = 'cli'): unknown => {
  * @returns Proper route definition accepted by static-pages/core.
  */
 async function prepareRoute(route: unknown): Promise<Route> {
-	assertType('arguments', route, 'object');
+	assertType('route', route, 'object');
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const { from, to, controller, variables } = route as any;
@@ -120,13 +119,34 @@ async function prepareRoute(route: unknown): Promise<Route> {
 	const fromIsObject = from && typeof from === 'object';
 	const fromModuleKey = fromIsObject ? 'from.module' : 'from';
 	const fromModuleName = fromIsObject ? from.module : from;
-	const fromImportName = fromIsObject ? from.import : 'cli';
+	const fromExportName = fromIsObject ? from.export : 'cli';
 	const fromArgs = fromIsObject ? from.args : undefined;
 
 	assertType('from', from, 'object', 'string');
 	assertType(fromModuleKey, fromModuleName, 'string');
 
-	const fromFactory = importModule(fromModuleName, fromImportName);
+	// --to
+	const toIsObject = to && typeof to === 'object';
+	const toModuleKey = toIsObject ? 'to.module' : 'to';
+	const toModuleName = toIsObject ? to.module : to;
+	const toExportName = toIsObject ? to.export : 'cli';
+	const toArgs = toIsObject ? to.args : undefined;
+
+	assertType('to', to, 'object', 'string');
+	assertType(toModuleKey, toModuleName, 'string');
+
+	// --controller
+	const controllerIsObject = controller && typeof controller === 'object';
+	const controllerModuleKey = controllerIsObject ? 'controller.module' : 'controller';
+	const controllerModuleName = controllerIsObject ? controller.module : controller;
+	const controllerExportName = controllerIsObject ? controller.export : 'cli';
+
+	if (controller) {
+		assertType('controller', controller, 'object', 'string');
+		assertType(controllerModuleKey, controllerModuleName, 'string');
+	}
+
+	const fromFactory = importModule(fromModuleName, fromExportName);
 	if (typeof fromFactory !== 'function')
 		throw new Error(`'${fromModuleKey}' error: '${fromModuleName}' does not exports a function.`);
 
@@ -134,17 +154,7 @@ async function prepareRoute(route: unknown): Promise<Route> {
 	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
 		throw new Error(`'${fromModuleKey}' error: '${fromModuleName}' does not provide an iterable or async iterable.`);
 
-	// --to
-	const toIsObject = to && typeof to === 'object';
-	const toModuleKey = toIsObject ? 'to.module' : 'to';
-	const toModuleName = toIsObject ? to.module : to;
-	const toImportName = toIsObject ? to.import : 'cli';
-	const toArgs = toIsObject ? to.args : undefined;
-
-	assertType('to', to, 'object', 'string');
-	assertType(toModuleKey, toModuleName, 'string');
-
-	const toFactory = importModule(toModuleName, toImportName);
+	const toFactory = importModule(toModuleName, toExportName);
 	if (typeof toFactory !== 'function')
 		throw new Error(`'${toModuleKey}' error: '${toModuleName}' does not exports a function.`);
 
@@ -152,17 +162,7 @@ async function prepareRoute(route: unknown): Promise<Route> {
 	if (typeof toWriter !== 'function')
 		throw new Error(`'${toModuleKey}' error: '${toModuleName}' does not provide a function after initialization.`);
 
-	// --controller
-	const controllerIsObject = controller && typeof controller === 'object';
-	const controllerModuleKey = controllerIsObject ? 'controller.module' : 'controller';
-	const controllerModuleName = controllerIsObject ? controller.module : controller;
-	const controllerImportName = controllerIsObject ? controller.import : 'cli';
-
-	if (controller) {
-		assertType('controller', controller, 'object', 'string');
-		assertType(controllerModuleKey, controllerModuleName, 'string');
-	}
-	const controllerFn = typeof controllerModuleName === 'string' ? importModule(controllerModuleName, controllerImportName) : undefined;
+	const controllerFn = typeof controllerModuleName === 'string' ? importModule(controllerModuleName, controllerExportName) : undefined;
 	if (typeof controllerFn !== 'undefined' && !isController(controllerFn))
 		throw new Error(`'controller' error: '${controller}' does not provide a function.`);
 
