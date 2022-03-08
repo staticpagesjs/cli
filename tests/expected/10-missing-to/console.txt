@@ -1,1 +1,1 @@
-'route.to' type mismatch, expected 'object', 'string', got 'undefined'.
+'to' type mismatch, expected 'object' or 'string', got 'undefined'.

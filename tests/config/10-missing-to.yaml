@@ -1,1 +1,1 @@
-- from: non-existing-package
+- from: ./lib/reader-all

@@ -7,19 +7,19 @@ afterEach(() => {
 });
 
 test('14 simple passtrough from console input', async () => {
-	await execute(['-f', './lib/reader-all', '-t', './lib/writer']);
+	await execute(['--from', './lib/reader-all', '--to', './lib/writer']);
 
 	expect(getExpectedOutput('14-simple-pass-cli')).toStrictEqual(getProducedOutput());
 });
 
 test('15 controller from cli input', async () => {
-	await execute(['-f', './lib/reader-all', '-t', './lib/writer', '-s', './lib/controller-prop']);
+	await execute(['--from', './lib/reader-all', '--to', './lib/writer', '--controller', './lib/controller-prop']);
 
 	expect(getExpectedOutput('15-controller-test-cli')).toStrictEqual(getProducedOutput());
 });
 
 test('16 controller context value acces from cli input', async () => {
-	await execute(['-f', './lib/reader-all', '-t', './lib/writer', '-s', './lib/controller-context', '-v', '{"configValue":"foo bar"}']);
+	await execute(['--from', './lib/reader-all', '--to', './lib/writer', '--controller', './lib/controller-context', '--variables.configValue', 'foo bar']);
 
 	expect(getExpectedOutput('16-controller-context-cli')).toStrictEqual(getProducedOutput());
 });

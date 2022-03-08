@@ -2,4 +2,4 @@
   to: ./lib/writer
   controller:
     module: ./lib/controller-custom
-    import: myCustomController
+    export: myCustomController
