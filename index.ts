@@ -10,10 +10,7 @@ import staticPages, { Route, Controller } from '@static-pages/core';
 
 const argv = minimist(process.argv.slice(2), {
 	alias: {
-		C: 'config',
-		f: 'from.module',
-		t: 'to.module',
-		c: 'controller',
+		c: 'config',
 		h: 'help',
 		v: 'version',
 	},
@@ -22,6 +19,40 @@ const argv = minimist(process.argv.slice(2), {
 		'version',
 	],
 });
+
+// Check for incorrect arguments
+function flattenObjectKeys(obj: object): string[] {
+	const keys: string[] = [];
+	const walk = (obj: object, parent = ''): void => {
+		for (const [key, value] of Object.entries(obj)) {
+			if (typeof value === 'object' && value) {
+				walk(value, `${parent}${key}.`);
+			} else {
+				keys.push(`${parent}${key}`);
+			}
+		}
+	};
+	walk(obj);
+	return keys;
+}
+
+const unknownArgs = flattenObjectKeys(argv).filter(arg => [
+	/^_$/,
+	/^config$/, /^c$/,
+	/^help$/, /^h$/,
+	/^version$/, /^v$/,
+	/^from(?:\.module|\.import|\.args\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+)?$/,
+	/^to(?:\.module|\.import|\.args\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+)?$/,
+	/^controller(?:\.module|\.import)?$/
+].every(pattern => !pattern.test(arg)));
+
+if (unknownArgs.length > 0) {
+	for (const arg of unknownArgs) {
+		console.error(`Unknown argument: ${arg.length > 1 ? '--' : '-'}${arg}`);
+	}
+	console.error('\nSee --help for usage.');
+	process.exit(1);
+}
 
 /**
  * Ensures a variable has the desired type.
@@ -61,7 +92,7 @@ const ensureArray = (x: unknown): unknown[] => Array.isArray(x) ? x : [x];
  * @param preferredImport Preferred import, if not exists fallbacks to default, then a cjs function export.
  * @returns Module exports.
  */
-const importCliModule = (file: string, preferredImport = 'cli'): unknown => {
+const importModule = (file: string, preferredImport = 'cli'): unknown => {
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const mod: any = importFrom(process.cwd(), file);
@@ -83,35 +114,37 @@ async function prepareRoute(route: unknown): Promise<Route> {
 	assertType('arguments', route, 'object');
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const { from, to, controller, variables } = <any>route;
+	const { from, to, controller, variables } = route as any;
 
 	// --from
-	const fromModuleKey = from && typeof from === 'object' ? 'from.module' : 'from';
-	const fromModuleName = from && typeof from === 'object' ? from.module : from;
-	const fromImportName = from && typeof from === 'object' ? from.import : 'cli';
-	const fromArgs = typeof from === 'object' ? from.args : undefined;
+	const fromIsObject = from && typeof from === 'object';
+	const fromModuleKey = fromIsObject ? 'from.module' : 'from';
+	const fromModuleName = fromIsObject ? from.module : from;
+	const fromImportName = fromIsObject ? from.import : 'cli';
+	const fromArgs = fromIsObject ? from.args : undefined;
 
 	assertType('from', from, 'object', 'string');
 	assertType(fromModuleKey, fromModuleName, 'string');
 
-	const fromFactory = importCliModule(fromModuleName, fromImportName);
+	const fromFactory = importModule(fromModuleName, fromImportName);
 	if (typeof fromFactory !== 'function')
-		throw new Error(`'${fromModuleKey}' of '${fromModuleName}' does not exports a function.`);
+		throw new Error(`'${fromModuleKey}' error: '${fromModuleName}' does not exports a function.`);
 
 	const fromIterable = await fromFactory(...ensureArray(fromArgs));
 	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
-		throw new Error(`'${fromModuleKey}' of '${fromModuleName}' does not provide an iterable or async iterable.`);
+		throw new Error(`'${fromModuleKey}' error: '${fromModuleName}' does not provide an iterable or async iterable.`);
 
 	// --to
-	const toModuleKey = to && typeof to === 'object' ? 'to.module' : 'to';
-	const toModuleName = to && typeof to === 'object' ? to.module : to;
-	const toImportName = to && typeof to === 'object' ? to.import : 'cli';
-	const toArgs = to && typeof to === 'object' ? to.args : undefined;
+	const toIsObject = to && typeof to === 'object';
+	const toModuleKey = toIsObject ? 'to.module' : 'to';
+	const toModuleName = toIsObject ? to.module : to;
+	const toImportName = toIsObject ? to.import : 'cli';
+	const toArgs = toIsObject ? to.args : undefined;
 
 	assertType('to', to, 'object', 'string');
 	assertType(toModuleKey, toModuleName, 'string');
 
-	const toFactory = importCliModule(toModuleName, toImportName);
+	const toFactory = importModule(toModuleName, toImportName);
 	if (typeof toFactory !== 'function')
 		throw new Error(`'${toModuleKey}' error: '${toModuleName}' does not exports a function.`);
 
@@ -120,15 +153,16 @@ async function prepareRoute(route: unknown): Promise<Route> {
 		throw new Error(`'${toModuleKey}' error: '${toModuleName}' does not provide a function after initialization.`);
 
 	// --controller
-	const controllerModuleKey = controller && typeof controller === 'object' ? 'controller.module' : 'controller';
-	const controllerModuleName = controller && typeof controller === 'object' ? controller.module : controller;
-	const controllerImportName = controller && typeof controller === 'object' ? controller.import : 'cli';
+	const controllerIsObject = controller && typeof controller === 'object';
+	const controllerModuleKey = controllerIsObject ? 'controller.module' : 'controller';
+	const controllerModuleName = controllerIsObject ? controller.module : controller;
+	const controllerImportName = controllerIsObject ? controller.import : 'cli';
 
 	if (controller) {
 		assertType('controller', controller, 'object', 'string');
 		assertType(controllerModuleKey, controllerModuleName, 'string');
 	}
-	const controllerFn = typeof controllerModuleName === 'string' ? importCliModule(controllerModuleName, controllerImportName) : undefined;
+	const controllerFn = typeof controllerModuleName === 'string' ? importModule(controllerModuleName, controllerImportName) : undefined;
 	if (typeof controllerFn !== 'undefined' && !isController(controllerFn))
 		throw new Error(`'controller' error: '${controller}' does not provide a function.`);
 
@@ -163,30 +197,16 @@ function routesFromFile(file: string): Promise<Route[]> {
 
 (async () => {
 	let routes: Route | Route[];
-	if (argv.config || argv.c) {
-		// from config file via --config
-		routes = await routesFromFile(argv.config || argv.c);
-	} else if (Object.keys(argv).length > 1) { // argv['_'] always exists!
-		// from command line options
+	if (argv.version) {
+		showVersion();
+		process.exit(0);
+	} else if (argv.config) {
+		routes = await routesFromFile(argv.config);
+	} else if (argv.from || argv.to) {
 		routes = await prepareRoute(argv);
 	} else {
-		const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
-		console.log(pkg);
-
-		// TODO: program.help();
-		// program
-		// 	.name(Object.keys(pkg.bin)[0])
-		// 	.version(pkg.version, '--version', 'output the current cli version')
-		// 	.option('-c, --config <path>', 'path to a build configuration file')
-		// 	.option('-f, --from <package>', 'import \'cli\' or \'default\' from this package as the reader')
-		// 	.option('-a, --from-args <JSON-string>', 'arguments passed to reader; provide in JSON format')
-		// 	.option('-t, --to <package>', 'import \'cli\' or \'default\' from this package as the writer')
-		// 	.option('-b, --to-args <JSON-string>', 'arguments passed to writer; provide in JSON format')
-		// 	.option('-s, --controller <package>', 'controller that can process the input data before rendering')
-		// 	.option('-v, --variables <JSON-string>', 'additional object that will be passed to the controller as \'this\'')
-		// 	.parse();
-		process.exit();
-
+		showHelp();
+		process.exit(0);
 	}
 
 	// The work.
@@ -197,3 +217,37 @@ function routesFromFile(file: string): Promise<Route[]> {
 		console.error(err?.message ?? err);
 		process.exit(1);
 	});
+
+
+function showVersion() {
+	const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
+	console.log(pkg.version);
+}
+
+function showHelp() {
+	const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
+	console.log(`Usage: ${Object.keys(pkg.bin)[0]} [options]
+
+Options:
+  -h, --help               Display help.
+  -v, --version            Output the current cli version.
+  -c, --config <file>      Load configuration from YAML or JSON file.
+  --from <package>         Shorthand for --form.module; disables other --from.*
+                           arguments. Usage is not recommended in production.
+  --from.module <package>  The module to import from using node require().
+  --from.export <name>     Name of the exports to be imported. Default: 'cli'.
+                           If not found, falls back to the default export.
+  --from.args.* <value>    Arguments passed to the reader factory method.
+  --to <package>           Shorthand for --to.module; disables other --to.*
+                           arguments. Usage is not recommended in production.
+  --to.module <package>    The module to import from using node require().
+  --to.export <name>       Name of the exports to be imported. Default: 'cli'.
+                           If not found, falls back to the default export.
+  --to.args.* <value>      Arguments passed to the writer factory method.
+  --controller <package>   Shorthand for --controller.module; disables other
+                           --controller.* arguments.
+  --controller.module      Your custom controller that works on the page data.
+  --controller.export      Name of the exports to be imported. Default: 'cli'.
+  --variables.* <value>    Additional variables that will be accessible in the
+                           controller's context (this.<variable>).`);
+}
