@@ -109,11 +109,10 @@ const importModule = (moduleName: string, exportName = 'cli'): unknown => {
  * @param route CLI route definition where properties are strings and needs to be resolved to its corresponding types.
  * @returns Proper route definition accepted by static-pages/core.
  */
-async function prepareRoute(route: unknown): Promise<Route> {
+async function prepareRoute(route: Record<string, unknown>): Promise<Route> {
 	assertType('route', route, 'object');
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const { from, to, controller, variables } = route as any;
+	const { from, to, controller, variables } = route;
 
 	// --from
 	const fromIsObject = from && typeof from === 'object';
