@@ -200,7 +200,7 @@ function routesFromFile(file: string): Promise<Route[]> {
 		process.exit(0);
 	} else if (argv.config) {
 		routes = await routesFromFile(argv.config);
-	} else if (argv.from || argv.to) {
+	} else if (argv.from || argv.to || argv.controller || argv.variables) {
 		routes = await prepareRoute(argv);
 	} else {
 		showHelp();
