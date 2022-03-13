@@ -1,1 +1,1 @@
-'to' type mismatch, expected 'object' or 'string', got 'undefined'.
+'to' type mismatch, expected 'string' or 'object', got 'undefined'.

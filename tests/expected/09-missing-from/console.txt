@@ -1,1 +1,1 @@
-'from' type mismatch, expected 'object' or 'string', got 'undefined'.
+'from' type mismatch, expected 'string' or 'object', got 'undefined'.

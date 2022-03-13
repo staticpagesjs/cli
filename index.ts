@@ -3,8 +3,8 @@
 import 'dotenv/config';
 
 import * as fs from 'fs';
+import * as path from 'path';
 import * as yaml from 'js-yaml';
-import * as importFrom from 'import-from';
 import * as minimist from 'minimist';
 import staticPages, { Route, Controller } from '@static-pages/core';
 
@@ -36,18 +36,18 @@ function flattenObjectKeys(obj: object): string[] {
 	return keys;
 }
 
-const unknownArgs = flattenObjectKeys(argv).filter(arg => [
-	/^_$/,
-	/^config$/, /^c$/,
-	/^help$/, /^h$/,
-	/^version$/, /^v$/,
+const unknownParams = flattenObjectKeys(argv).filter(arg => [
+	/^_\./, // argv always includes an array as '_'
+	/^c$/, /^config$/,
+	/^h$/, /^help$/,
+	/^v$/, /^version$/,
 	/^(:?from|to)(?:\.module|\.export|\.args\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+)?$/,
 	/^controller(?:\.module|\.export)?$/,
 	/^variables\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+$/,
 ].every(pattern => !pattern.test(arg)));
 
-if (unknownArgs.length > 0 || argv._.length > 0) {
-	for (const arg of unknownArgs) {
+if (unknownParams.length > 0 || argv._.length > 0) {
+	for (const arg of unknownParams) {
 		console.error(`Unknown argument: ${arg.length > 1 ? '--' : '-'}${arg}`);
 	}
 	for (const arg of argv._) {
@@ -57,174 +57,13 @@ if (unknownArgs.length > 0 || argv._.length > 0) {
 	process.exit(1);
 }
 
-/**
- * Ensures a variable has the desired type.
- *
- * @param name Name of the variable that is reported on error.
- * @param x The variable to check.
- * @param desiredType The desired type.
- */
-const assertType = (name: string, x: unknown, ...desiredType: string[]): void => {
-	const actualType = typeof x === 'object' ? (x ? 'object' : 'null') : typeof x;
-	if (!desiredType.includes(actualType)) {
-		const last = desiredType.pop();
-		throw new Error(`'${name}' type mismatch, expected '${desiredType.join('\', \'')}${desiredType.length > 0 ? '\' or \'' : ''}${last}', got '${actualType}'.`);
-	}
-};
-
-/**
- * Optimistic implementation for a type guard to test for `Controller` types.
- *
- * @param fn: Subject to test
- */
-const isController = (fn: unknown): fn is Controller => typeof fn === 'function';
-
-/**
- * Ensures that the given object is an array.
- * Wraps it in array if its not an array.
- *
- * @param x Any object.
- * @returns Array.
- */
-const ensureArray = (x: unknown): unknown[] => Array.isArray(x) ? x : [x];
-
-/**
- * Imports a CommonJS module, relative from the process.cwd().
- *
- * @param moduleName Module path.
- * @param exportName Preferred export, if not exists fallbacks to default, then a cjs function export.
- * @returns Module exports.
- */
-const importModule = (moduleName: string, exportName = 'cli'): unknown => {
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const module: any = importFrom(process.cwd(), moduleName);
-		return module[exportName] ?? module.default ?? module;
-	} catch (error: unknown) {
-		throw new Error(`Failed to load module '${moduleName}': ${error instanceof Error ? error.message : error}\n${error instanceof Error ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
-	}
-};
-
-/**
- * Resolves string properties of a 'cli' route into real objects used by 'core' route definitions.
- *
- * @param route CLI route definition where properties are strings and needs to be resolved to its corresponding types.
- * @returns Proper route definition accepted by static-pages/core.
- */
-async function prepareRoute(route: Record<string, unknown>): Promise<Route> {
-	assertType('route', route, 'object');
-
-	const { from, to, controller, variables } = route;
-
-	// --from
-	const fromIsObject = from && typeof from === 'object';
-	const fromModuleKey = fromIsObject ? 'from.module' : 'from';
-	const fromModuleName = fromIsObject ? from.module : from;
-	const fromExportName = fromIsObject ? from.export : 'cli';
-	const fromArgs = fromIsObject ? from.args : undefined;
-
-	assertType('from', from, 'object', 'string');
-	assertType(fromModuleKey, fromModuleName, 'string');
-
-	// --to
-	const toIsObject = to && typeof to === 'object';
-	const toModuleKey = toIsObject ? 'to.module' : 'to';
-	const toModuleName = toIsObject ? to.module : to;
-	const toExportName = toIsObject ? to.export : 'cli';
-	const toArgs = toIsObject ? to.args : undefined;
-
-	assertType('to', to, 'object', 'string');
-	assertType(toModuleKey, toModuleName, 'string');
-
-	// --controller
-	const controllerIsObject = controller && typeof controller === 'object';
-	const controllerModuleKey = controllerIsObject ? 'controller.module' : 'controller';
-	const controllerModuleName = controllerIsObject ? controller.module : controller;
-	const controllerExportName = controllerIsObject ? controller.export : 'cli';
-
-	if (controller) {
-		assertType('controller', controller, 'object', 'string');
-		assertType(controllerModuleKey, controllerModuleName, 'string');
-	}
-
-	const fromFactory = importModule(fromModuleName, fromExportName);
-	if (typeof fromFactory !== 'function')
-		throw new Error(`'${fromModuleKey}' error: '${fromModuleName}' does not exports a function.`);
-
-	const fromIterable = await fromFactory(...ensureArray(fromArgs));
-	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
-		throw new Error(`'${fromModuleKey}' error: '${fromModuleName}' does not provide an iterable or async iterable.`);
-
-	const toFactory = importModule(toModuleName, toExportName);
-	if (typeof toFactory !== 'function')
-		throw new Error(`'${toModuleKey}' error: '${toModuleName}' does not exports a function.`);
-
-	const toWriter = await toFactory(...ensureArray(toArgs));
-	if (typeof toWriter !== 'function')
-		throw new Error(`'${toModuleKey}' error: '${toModuleName}' does not provide a function after initialization.`);
-
-	const controllerFn = typeof controllerModuleName === 'string' ? importModule(controllerModuleName, controllerExportName) : undefined;
-	if (typeof controllerFn !== 'undefined' && !isController(controllerFn))
-		throw new Error(`'controller' error: '${controller}' does not provide a function.`);
-
-	// Construct the route object accepted by @static-pages/core
-	return {
-		from: fromIterable,
-		to: toWriter,
-		controller: controllerFn,
-		variables: variables,
-	};
-}
-
-/**
- * Reads configuration from yaml file.
- *
- * @param file Path to the configuration file.
- * @returns Route definitions.
- */
-function routesFromFile(file: string): Promise<Route[]> {
-	if (!fs.existsSync(file)) {
-		throw new Error(`Configuration file does not exists: ${file}`);
-	}
-	try {
-		return Promise.all(
-			ensureArray(yaml.load(fs.readFileSync(file, 'utf-8')))
-				.map(x => prepareRoute(x))
-		);
-	} catch (error: unknown) {
-		throw new Error(`Could not prepare configuration: ${error instanceof Error ? error.message : error}`);
-	}
-}
-
-(async () => {
-	let routes: Route | Route[];
-	if (argv.version) {
-		showVersion();
-		process.exit(0);
-	} else if (argv.config) {
-		routes = await routesFromFile(argv.config);
-	} else if (argv.from || argv.to || argv.controller || argv.variables) {
-		routes = await prepareRoute(argv);
-	} else {
-		showHelp();
-		process.exit(0);
-	}
-
-	// The work.
-	await staticPages(routes);
-
-})()
-	.catch(err => {
-		console.error(err?.message ?? err);
-		process.exit(1);
-	});
-
-
+// Version page
 function showVersion() {
 	const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
 	console.log(pkg.version);
 }
 
+// Help page
 function showHelp() {
 	const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
 	console.log(`Usage: ${Object.keys(pkg.bin)[0]} [options]
@@ -252,3 +91,198 @@ Options:
   --variables.* <value>    Additional variables that will be accessible in the
                            controller's context (this.<variable>).`);
 }
+
+/**
+ * Ensures a variable is string type.
+ *
+ * @param name Name of the variable that is reported on error.
+ * @param x The variable to check.
+ */
+function assertString(name: string, x: unknown): asserts x is string {
+	if (typeof x !== 'string') {
+		throw new Error(`'${name}' type mismatch, expected 'string', got '${typeof x === 'object' ? (x ? 'object' : 'null') : typeof x}'.`);
+	}
+}
+
+/**
+ * Ensures a variable is object type.
+ *
+ * @param name Name of the variable that is reported on error.
+ * @param x The variable to check.
+ */
+function assertObject(name: string, x: unknown): asserts x is Record<string, unknown> {
+	if (typeof x !== 'object' && !x) {
+		throw new Error(`'${name}' type mismatch, expected 'object', got '${typeof x === 'object' ? (x ? 'object' : 'null') : typeof x}'.`);
+	}
+}
+
+/**
+ * Ensures a variable is string or object type.
+ *
+ * @param name Name of the variable that is reported on error.
+ * @param x The variable to check.
+ */
+function assertObjectOrString(name: string, x: unknown): asserts x is Record<string, unknown> | string {
+	if (typeof x !== 'string' && typeof x !== 'object' && !x) {
+		throw new Error(`'${name}' type mismatch, expected 'string' or 'object', got '${typeof x === 'object' ? (x ? 'object' : 'null') : typeof x}'.`);
+	}
+}
+
+/**
+ * Asserts route.from and route.to vars
+ *
+ * @param name Name of the variable that is reported on error: from/to
+ * @param x The variable to check.
+ */
+function assertFromTo(name: string, x: unknown): asserts x is string | {
+	module: string;
+	export?: string;
+	args?: Record<string, unknown> | unknown[];
+} {
+	assertObjectOrString(name, x);
+	if (typeof x === 'object') {
+		assertString(`${x}.module`, x.module);
+		if (typeof x.export !== 'undefined') assertString(`${x}.export`, x.export);
+		if (typeof x.args !== 'undefined') assertObject(`${x}.args`, x.args);
+	}
+}
+
+/**
+ * Asserts controller
+ *
+ * @param x The variable to check.
+ */
+function assertController(x: unknown): asserts x is string | {
+	module: string;
+	export?: string;
+} {
+	assertObjectOrString('controller', x);
+	if (typeof x === 'object') {
+		assertString('controller.module', x.module);
+		if (typeof x.export !== 'undefined') assertString('controller.export', x.export);
+	}
+}
+
+/**
+ * Optimistic implementation for a type guard to test for `Controller` types.
+ *
+ * @param fn: Subject to test
+ */
+const isController = (fn: unknown): fn is Controller => typeof fn === 'function';
+
+/**
+ * Ensures that the given object is an array.
+ * Wraps it in array if its not an array.
+ *
+ * @param x Any object.
+ * @returns Array.
+ */
+const ensureArray = <T>(x: T | T[]): T[] => Array.isArray(x) ? x : [x];
+
+/**
+ * Imports a CommonJS module, relative from the process.cwd().
+ *
+ * @param moduleName Module path.
+ * @param exportName Preferred export, if not exists fallbacks to default, then a cjs function export.
+ * @returns Module exports.
+ */
+const importModule = async (moduleName: string, exportName = 'cli'): Promise<unknown> => {
+	try {
+		const module = await import(moduleName.startsWith('.') ? path.resolve(process.cwd(), moduleName) : moduleName);
+		return module[exportName] ?? module.default ?? module;
+	} catch (error: unknown) {
+		throw new Error(`Failed to load module '${moduleName}': ${error instanceof Error ? error.message : error}\n${error instanceof Error ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
+	}
+};
+
+/**
+ * Resolves string properties of a 'cli' route into real objects used by 'core' route definitions.
+ *
+ * @param route CLI route definition where properties are strings and needs to be resolved to its corresponding types.
+ * @returns Proper route definition accepted by static-pages/core.
+ */
+async function prepareRoute(route: unknown): Promise<Route> {
+	assertObject('route', route);
+
+	const { from, to, controller, variables } = route;
+
+	assertFromTo('from', from);
+	const fromObj = typeof from === 'object' ? from : { module: from };
+	const fromFactory = await importModule(fromObj.module, fromObj.export);
+	if (typeof fromFactory !== 'function')
+		throw new Error(`'from.module' error: '${fromObj.module}' does not exports a function.`);
+	const fromIterable = await fromFactory(...ensureArray(fromObj.args));
+	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
+		throw new Error(`'from.module' error: '${fromObj.module}' does not provide an iterable or async iterable.`);
+
+	assertFromTo('to', to);
+	const toObj = typeof to === 'object' ? to : { module: to };
+	const toFactory = await importModule(toObj.module, toObj.export);
+	if (typeof toFactory !== 'function')
+		throw new Error(`'to.module' error: '${toObj.module}' does not exports a function.`);
+	const toWriter = await toFactory(...ensureArray(toObj.args));
+	if (typeof toWriter !== 'function')
+		throw new Error(`'to.module' error: '${toObj.module}' does not provide a function after initialization.`);
+
+	let controllerFn;
+	if (typeof controller !== 'undefined') {
+		assertController(controller);
+		const controllerObj = typeof controller === 'object' ? controller : { module: controller };
+		controllerFn = await importModule(controllerObj.module, controllerObj.export);
+
+		if (!isController(controllerFn))
+			throw new Error(`'controller' error: '${controllerObj.module}' does not provide a function.`);
+	}
+
+	if (typeof variables !== 'undefined')
+		assertObject('variables', variables);
+
+	// Construct the route object accepted by @static-pages/core
+	return {
+		from: fromIterable,
+		to: toWriter,
+		controller: controllerFn,
+		variables: variables,
+	};
+}
+
+/**
+ * Reads configuration from yaml file.
+ *
+ * @param file Path to the configuration file.
+ * @returns Route definitions.
+ */
+function routesFromFile(file: string): Promise<Route[]> {
+	if (!fs.existsSync(file)) {
+		throw new Error(`Configuration file does not exists: ${file}`);
+	}
+	try {
+		const config = yaml.load(fs.readFileSync(file, 'utf-8'));
+		return Promise.all(ensureArray(config).map(x => prepareRoute(x)));
+	} catch (error: unknown) {
+		throw new Error(`Could not prepare configuration: ${error instanceof Error ? error.message : error}`);
+	}
+}
+
+(async () => {
+	let routes: Route | Route[];
+	if (argv.version) {
+		showVersion();
+		process.exit(0);
+	} else if (argv.config) {
+		routes = await routesFromFile(argv.config);
+	} else if (argv.from || argv.to || argv.controller || argv.variables) {
+		routes = await prepareRoute(argv);
+	} else { // when --help is supplied or when no args present
+		showHelp();
+		process.exit(0);
+	}
+
+	// The work.
+	await staticPages(routes);
+
+})()
+	.catch(err => {
+		console.error(err?.message ?? err);
+		process.exit(1);
+	});
