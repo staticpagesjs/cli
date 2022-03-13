@@ -46,9 +46,12 @@ const unknownArgs = flattenObjectKeys(argv).filter(arg => [
 	/^variables\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+$/,
 ].every(pattern => !pattern.test(arg)));
 
-if (unknownArgs.length > 0) {
+if (unknownArgs.length > 0 || argv._.length > 0) {
 	for (const arg of unknownArgs) {
 		console.error(`Unknown argument: ${arg.length > 1 ? '--' : '-'}${arg}`);
+	}
+	for (const arg of argv._) {
+		console.error(`Unknown argument: ${arg}`);
 	}
 	console.error('\nSee --help for usage.');
 	process.exit(1);
