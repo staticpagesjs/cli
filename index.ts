@@ -180,7 +180,7 @@ const isController = (fn: unknown): fn is Controller => typeof fn === 'function'
 const ensureArray = <T>(x: T | T[]): T[] => Array.isArray(x) ? x : [x];
 
 /**
- * Imports a CommonJS module, relative from the process.cwd().
+ * Imports an ES or CJS module, relative from the process.cwd().
  *
  * @param moduleName Module path.
  * @param exportName Preferred export, if not exists fallbacks to default, then a cjs function export.
