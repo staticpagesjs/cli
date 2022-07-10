@@ -87,7 +87,9 @@ Options:
   --controller <package>   Shorthand for --controller.module; disables other
                            --controller.* arguments.
   --controller.module      Your custom controller that works on the page data.
-  --controller.export      Name of the exports to be imported. Default: 'cli'.`);
+  --controller.export      Name of the exports to be imported. Default: 'cli'.
+  --variables.* <value>    Additional variables that will be accessible in the
+                           controller's context (this.<variable>).`);
 }
 
 /**
@@ -202,7 +204,7 @@ const importModule = async (moduleName: string, exportName = 'cli'): Promise<unk
 async function prepareRoute(route: unknown): Promise<Route> {
 	assertObject('route', route);
 
-	const { from, to, controller } = route;
+	const { from, to, controller, variables } = route;
 
 	assertFromTo('from', from);
 	const fromObj = typeof from === 'object' ? from : { module: from };
@@ -232,11 +234,14 @@ async function prepareRoute(route: unknown): Promise<Route> {
 			throw new Error(`'controller' error: '${controllerObj.module}' does not provide a function.`);
 	}
 
+	if (typeof variables !== 'undefined')
+		assertObject('variables', variables);
+
 	// Construct the route object accepted by @static-pages/core
 	return {
 		from: fromIterable,
 		to: toWriter,
-		controller: controllerFn,
+		controller: controllerFn?.bind?.(variables),
 	};
 }
 
