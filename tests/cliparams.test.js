@@ -17,9 +17,3 @@ test('15 controller from cli input', async () => {
 
 	expect(getExpectedOutput('15-controller-test-cli')).toStrictEqual(getProducedOutput());
 });
-
-test('16 controller context value acces from cli input', async () => {
-	await execute(['--from', './lib/reader-all', '--to', './lib/writer', '--controller', './lib/controller-context', '--variables.configValue', 'foo bar']);
-
-	expect(getExpectedOutput('16-controller-context-cli')).toStrictEqual(getProducedOutput());
-});

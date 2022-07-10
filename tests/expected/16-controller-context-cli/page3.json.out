@@ -1,7 +1,0 @@
-OUTPUT BEGIN --
-{
-    "source": "page3.json",
-    "foo": "baz",
-    "bar": "foobar"
-}
-OUTPUT END ---
