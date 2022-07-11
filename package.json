@@ -50,6 +50,7 @@
   "dependencies": {
     "@static-pages/core": "^3.0.0",
     "dotenv": "^16.0.0",
+    "import-from": "^4.0.0",
     "js-yaml": "^4.1.0",
     "minimist": "^1.2.5"
   }

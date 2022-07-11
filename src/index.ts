@@ -3,11 +3,11 @@
 import 'dotenv/config';
 
 import * as fs from 'fs';
-import * as path from 'path';
 import * as yaml from 'js-yaml';
 import * as minimist from 'minimist';
-import { staticPages, Route, Controller } from '@static-pages/core';
+import { staticPages, Route } from '@static-pages/core';
 
+import { importModule } from './import-module.js';
 import { parseArgs } from './arg-parse';
 import { ensureArray } from './ensure-array';
 import { flattenObject } from './flatten-object.js';
@@ -88,29 +88,6 @@ Options:
 }
 
 /**
- * Optimistic implementation for a type guard to test for `Controller` types.
- *
- * @param fn: Subject to test
- */
-const isController = (fn: unknown): fn is Controller => typeof fn === 'function';
-
-/**
- * Imports an ES or CJS module, relative from the process.cwd().
- *
- * @param moduleName Module path.
- * @param exportName Preferred export, if not exists fallbacks to default, then a cjs function export.
- * @returns Module exports.
- */
-const importModule = async (moduleName: string, exportName = 'default'): Promise<unknown> => {
-	try {
-		const module = await import(moduleName.startsWith('.') ? path.resolve(process.cwd(), moduleName) : moduleName);
-		return module[exportName] ?? module.default?.[exportName] ?? module.default ?? module;
-	} catch (error: unknown) {
-		throw new Error(`Failed to load module '${moduleName}': ${error instanceof Error ? error.message : error}\n${error instanceof Error ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
-	}
-};
-
-/**
  * Resolves string properties of a 'cli' route into real objects used by 'core' route definitions.
  *
  * @param route CLI route definition where properties are strings and needs to be resolved to its corresponding types.
@@ -126,7 +103,7 @@ async function prepareRoute(route: unknown): Promise<Route> {
 	const fromFactory = await importModule(fromObj.module, fromObj.export);
 	if (typeof fromFactory !== 'function')
 		throw new Error(`'from.module' error: '${fromObj.module}' does not exports a function.`);
-	const fromIterable = await fromFactory(...parseArgs(fromObj.module, fromObj.args));
+	const fromIterable = await fromFactory(...await parseArgs(fromObj.module, fromObj.args));
 	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
 		throw new Error(`'from.module' error: '${fromObj.module}' does not provide an iterable or async iterable.`);
 
@@ -135,7 +112,7 @@ async function prepareRoute(route: unknown): Promise<Route> {
 	const toFactory = await importModule(toObj.module, toObj.export);
 	if (typeof toFactory !== 'function')
 		throw new Error(`'to.module' error: '${toObj.module}' does not exports a function.`);
-	const toWriter = await toFactory(...parseArgs(toObj.module, toObj.args));
+	const toWriter = await toFactory(...await parseArgs(toObj.module, toObj.args));
 	if (typeof toWriter !== 'function')
 		throw new Error(`'to.module' error: '${toObj.module}' does not provide a function after initialization.`);
 
@@ -145,7 +122,7 @@ async function prepareRoute(route: unknown): Promise<Route> {
 		const controllerObj = typeof controller === 'object' ? controller : { module: controller };
 		controllerFn = await importModule(controllerObj.module, controllerObj.export);
 
-		if (!isController(controllerFn))
+		if (typeof controllerFn !== 'function')
 			throw new Error(`'controller' error: '${controllerObj.module}' does not provide a function.`);
 	}
 
