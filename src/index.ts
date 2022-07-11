@@ -8,6 +8,15 @@ import * as yaml from 'js-yaml';
 import * as minimist from 'minimist';
 import { staticPages, Route, Controller } from '@static-pages/core';
 
+import { parseArgs } from './arg-parse';
+import { ensureArray } from './ensure-array';
+import { flattenObject } from './flatten-object.js';
+import {
+	assertObject,
+	assertFromTo,
+	assertController
+} from './assert.js';
+
 const argv = minimist(process.argv.slice(2), {
 	alias: {
 		c: 'config',
@@ -21,23 +30,9 @@ const argv = minimist(process.argv.slice(2), {
 });
 
 // Check for incorrect arguments
-function flattenObjectKeys(obj: object): string[] {
-	const keys: string[] = [];
-	const walk = (obj: object, parent = ''): void => {
-		for (const [key, value] of Object.entries(obj)) {
-			if (typeof value === 'object' && value) {
-				walk(value, `${parent}${key}.`);
-			} else {
-				keys.push(`${parent}${key}`);
-			}
-		}
-	};
-	walk(obj);
-	return keys;
-}
-
-const unknownParams = flattenObjectKeys(argv).filter(arg => [
-	/^_\./, // argv always includes an array as '_'
+const argKeys = Object.keys(flattenObject(argv));
+const unknownParams = argKeys.filter(arg => [
+	/^_$/, // argv always includes an array as '_'
 	/^c$/, /^config$/,
 	/^h$/, /^help$/,
 	/^v$/, /^version$/,
@@ -59,13 +54,13 @@ if (unknownParams.length > 0 || argv._.length > 0) {
 
 // Version page
 function showVersion() {
-	const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
+	const pkg = JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf-8'));
 	console.log(pkg.version);
 }
 
 // Help page
 function showHelp() {
-	const pkg = JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf-8'));
+	const pkg = JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf-8'));
 	console.log(`Usage: ${Object.keys(pkg.bin)[0]} [options]
 
 Options:
@@ -75,92 +70,21 @@ Options:
   --from <package>         Shorthand for --form.module; disables other --from.*
                            arguments. Usage is not recommended in production.
   --from.module <package>  The module to import from using node require().
-  --from.export <name>     Name of the exports to be imported. Default: 'cli'.
+  --from.export <name>     Name of the exports to be imported. Default: 'default'.
                            If not found, falls back to the default export.
   --from.args.* <value>    Arguments passed to the reader factory method.
   --to <package>           Shorthand for --to.module; disables other --to.*
                            arguments. Usage is not recommended in production.
   --to.module <package>    The module to import from using node require().
-  --to.export <name>       Name of the exports to be imported. Default: 'cli'.
+  --to.export <name>       Name of the exports to be imported. Default: 'default'.
                            If not found, falls back to the default export.
   --to.args.* <value>      Arguments passed to the writer factory method.
   --controller <package>   Shorthand for --controller.module; disables other
                            --controller.* arguments.
   --controller.module      Your custom controller that works on the page data.
-  --controller.export      Name of the exports to be imported. Default: 'cli'.
+  --controller.export      Name of the exports to be imported. Default: 'default'.
   --variables.* <value>    Additional variables that will be accessible in the
                            controller's context (this.<variable>).`);
-}
-
-/**
- * Ensures a variable is string type.
- *
- * @param name Name of the variable that is reported on error.
- * @param x The variable to check.
- */
-function assertString(name: string, x: unknown): asserts x is string {
-	if (typeof x !== 'string') {
-		throw new Error(`'${name}' type mismatch, expected 'string', got '${typeof x === 'object' ? (x ? 'object' : 'null') : typeof x}'.`);
-	}
-}
-
-/**
- * Ensures a variable is object type.
- *
- * @param name Name of the variable that is reported on error.
- * @param x The variable to check.
- */
-function assertObject(name: string, x: unknown): asserts x is Record<string, unknown> {
-	if (typeof x !== 'object' && !x) {
-		throw new Error(`'${name}' type mismatch, expected 'object', got '${typeof x === 'object' ? (x ? 'object' : 'null') : typeof x}'.`);
-	}
-}
-
-/**
- * Ensures a variable is string or object type.
- *
- * @param name Name of the variable that is reported on error.
- * @param x The variable to check.
- */
-function assertObjectOrString(name: string, x: unknown): asserts x is Record<string, unknown> | string {
-	if (typeof x !== 'string' && typeof x !== 'object' && !x) {
-		throw new Error(`'${name}' type mismatch, expected 'string' or 'object', got '${typeof x === 'object' ? (x ? 'object' : 'null') : typeof x}'.`);
-	}
-}
-
-/**
- * Asserts route.from and route.to vars
- *
- * @param name Name of the variable that is reported on error: from/to
- * @param x The variable to check.
- */
-function assertFromTo(name: string, x: unknown): asserts x is string | {
-	module: string;
-	export?: string;
-	args?: Record<string, unknown> | unknown[];
-} {
-	assertObjectOrString(name, x);
-	if (typeof x === 'object') {
-		assertString(`${x}.module`, x.module);
-		if (typeof x.export !== 'undefined') assertString(`${x}.export`, x.export);
-		if (typeof x.args !== 'undefined') assertObject(`${x}.args`, x.args);
-	}
-}
-
-/**
- * Asserts controller
- *
- * @param x The variable to check.
- */
-function assertController(x: unknown): asserts x is string | {
-	module: string;
-	export?: string;
-} {
-	assertObjectOrString('controller', x);
-	if (typeof x === 'object') {
-		assertString('controller.module', x.module);
-		if (typeof x.export !== 'undefined') assertString('controller.export', x.export);
-	}
 }
 
 /**
@@ -171,25 +95,16 @@ function assertController(x: unknown): asserts x is string | {
 const isController = (fn: unknown): fn is Controller => typeof fn === 'function';
 
 /**
- * Ensures that the given object is an array.
- * Wraps it in array if its not an array.
- *
- * @param x Any object.
- * @returns Array.
- */
-const ensureArray = <T>(x: T | T[]): T[] => Array.isArray(x) ? x : [x];
-
-/**
  * Imports an ES or CJS module, relative from the process.cwd().
  *
  * @param moduleName Module path.
  * @param exportName Preferred export, if not exists fallbacks to default, then a cjs function export.
  * @returns Module exports.
  */
-const importModule = async (moduleName: string, exportName = 'cli'): Promise<unknown> => {
+const importModule = async (moduleName: string, exportName = 'default'): Promise<unknown> => {
 	try {
 		const module = await import(moduleName.startsWith('.') ? path.resolve(process.cwd(), moduleName) : moduleName);
-		return module[exportName] ?? module.default ?? module;
+		return module[exportName] ?? module.default?.[exportName] ?? module.default ?? module;
 	} catch (error: unknown) {
 		throw new Error(`Failed to load module '${moduleName}': ${error instanceof Error ? error.message : error}\n${error instanceof Error ? 'Trace: ' + error.stack : 'No stack trace available.'}`);
 	}
@@ -211,7 +126,7 @@ async function prepareRoute(route: unknown): Promise<Route> {
 	const fromFactory = await importModule(fromObj.module, fromObj.export);
 	if (typeof fromFactory !== 'function')
 		throw new Error(`'from.module' error: '${fromObj.module}' does not exports a function.`);
-	const fromIterable = await fromFactory(...ensureArray(fromObj.args));
+	const fromIterable = await fromFactory(...parseArgs(fromObj.module, fromObj.args));
 	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
 		throw new Error(`'from.module' error: '${fromObj.module}' does not provide an iterable or async iterable.`);
 
@@ -220,7 +135,7 @@ async function prepareRoute(route: unknown): Promise<Route> {
 	const toFactory = await importModule(toObj.module, toObj.export);
 	if (typeof toFactory !== 'function')
 		throw new Error(`'to.module' error: '${toObj.module}' does not exports a function.`);
-	const toWriter = await toFactory(...ensureArray(toObj.args));
+	const toWriter = await toFactory(...parseArgs(toObj.module, toObj.args));
 	if (typeof toWriter !== 'function')
 		throw new Error(`'to.module' error: '${toObj.module}' does not provide a function after initialization.`);
 

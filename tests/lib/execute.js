@@ -2,8 +2,8 @@ const path = require('path');
 const spawn = require('child_process').spawn;
 const concat = require('concat-stream');
 
-const cliJs = path.join(__dirname, '../../index.js');
-const workingDir = path.join(__dirname, '..');
+const cliJs = path.join(__dirname, '../../cjs/index.js');
+const workingDir = path.dirname(__dirname, '..');
 
 function spawnCli(args = [], env = null) {
 	return spawn('node', [cliJs, ...args], { NODE_ENV: 'test', cwd: workingDir, ...env });

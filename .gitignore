@@ -1,6 +1,6 @@
 /coverage/
 /tests/temp/
-/index.js
+/cjs/
 node_modules
 *.log
 *.tgz

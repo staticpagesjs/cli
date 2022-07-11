@@ -1,4 +1,6 @@
 - from:
     module: ./lib/reader-all
   to: ./lib/writer
-  controller: ./lib/controller-cli
+  controller:
+    module: ./lib/controller-cli
+    export: cli

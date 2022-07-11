@@ -2,7 +2,7 @@
   "name": "@static-pages/cli",
   "version": "1.0.0",
   "description": "CLI tool for the static pages generator.",
-  "main": "index.js",
+  "main": "cjs/index.js",
   "bin": {
     "staticpages": "index.js"
   },
@@ -10,7 +10,7 @@
     "prepack": "npm run build",
     "watch": "tsc --watch",
     "build": "tsc",
-    "test": "eslint index.ts && npm run build && jest --runInBand",
+    "test": "eslint src && npm run build && jest --runInBand",
     "style": "eslint index.ts --fix"
   },
   "repository": {
