@@ -4,7 +4,7 @@
   "description": "CLI tool for the static pages generator.",
   "main": "cjs/index.js",
   "bin": {
-    "staticpages": "index.js"
+    "staticpages": "cjs/index.js"
   },
   "scripts": {
     "prepack": "npm run build",
