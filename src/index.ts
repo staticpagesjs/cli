@@ -14,7 +14,7 @@ const knownArguments = [
 	/^-c$/, /^--config$/,
 	/^-h$/, /^--help$/,
 	/^-v$/, /^--version$/,
-	/^--(:?from|to)(?:\.module|\.export|\.args\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+)?$/,
+	/^--(:?from|to)(?:\.module|\.export|\.args\.(?:[:a-zA-Z0-9_-]+\.?)*[:a-zA-Z0-9_-]+)?$/,
 	/^--controller(?:\.module|\.export)?$/,
 	/^--variables\.(?:[a-zA-Z0-9_-]+\.?)*[a-zA-Z0-9_-]+$/,
 ];

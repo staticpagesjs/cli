@@ -173,27 +173,27 @@ These naming conventions are appiled recursively on each property name of the en
 
 ### Functions
 
-Functions can be parsed from string and loaded in the following way: append `$function` keyword to the property name of the target propery.
+Functions can be parsed from string and loaded in the following way: append `:function` keyword to the property name of the target propery.
 
 ```yaml
 to:
   module: '@static-pages/twig-writer'
   args:
-    view$function: (d) => d.layout
+    view:function: (d) => d.layout
 ```
 
-The `$function` keyword will be stripped from the property name and the string value will be converted to a function before calling the writer factory (`twigWriter(args)` in this case).
+The `:function` keyword will be stripped from the property name and the string value will be converted to a function before calling the writer factory (`twigWriter(args)` in this case).
 
 ### Importing from JS files
 
-Append `$import` keyword to the propery name to import from JS files.
+Append `:import` keyword to the propery name to import from JS files.
 Provide the value as a string (import that module with the default import) or as an object with `module` and `export` properties. The `export` property is optional and defaults to `default`.
 
 ```yaml
 to:
   module: '@static-pages/twig-writer'
   args:
-    globals$import:
+    globals:import:
       module: ./myglobals.js
       export: globals
 ```
@@ -212,17 +212,17 @@ This way `to.args.globals` will contain the `{ myProp: 'myValue' }` object.
 ### Stop the parsing on specific objects
 
 There are some cases where parsing the configuration can be an unwanted feature.
-In these cases append the `$raw` keyword to your property name and the given value will be preserved as-is, parsing stops on that level.
+In these cases append the `:raw` keyword to your property name and the given value will be preserved as-is, parsing stops on that level.
 
 ```yaml
 to:
   module: '@static-pages/twig-writer'
   args:
-    globals$raw:
-      my$function: some value
+    globals:raw:
+      my:function: some value
 ```
 
-In this case the `to.args.globals` will be `{ my$function: 'some value' }`. Notice the `$function` postfixed property is kept as-is.
+In this case the `to.args.globals` will be `{ 'my:function': 'some value' }`. Notice the `:function` postfixed property is kept as-is.
 
 ## Do you really need this CLI tool?
 
