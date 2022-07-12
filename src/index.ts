@@ -7,13 +7,12 @@ import * as yaml from 'js-yaml';
 import * as minimist from 'minimist';
 import { staticPages, Route } from '@static-pages/core';
 
-import { importModule } from './import-module.js';
-import { parseArgs } from './arg-parse';
-import { ensureArray } from './ensure-array';
 import { flattenObject } from './flatten-object.js';
+import { importModule } from './import-module.js';
+import { parseArgs } from './parse-args';
 import {
 	assertObject,
-	assertFromTo,
+	assertImport,
 	assertController
 } from './assert.js';
 
@@ -30,9 +29,8 @@ const argv = minimist(process.argv.slice(2), {
 });
 
 // Check for incorrect arguments
-const argKeys = Object.keys(flattenObject(argv));
-const unknownParams = argKeys.filter(arg => [
-	/^_$/, // argv always includes an array as '_'
+const unknownParams = Object.keys(flattenObject(argv)).filter(arg => [
+	/^_\.?/, // argv always includes an array as '_'
 	/^c$/, /^config$/,
 	/^h$/, /^help$/,
 	/^v$/, /^version$/,
@@ -60,31 +58,7 @@ function showVersion() {
 
 // Help page
 function showHelp() {
-	const pkg = JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf-8'));
-	console.log(`Usage: ${Object.keys(pkg.bin)[0]} [options]
-
-Options:
-  -h, --help               Display help.
-  -v, --version            Output the current cli version.
-  -c, --config <file>      Load configuration from YAML or JSON file.
-  --from <package>         Shorthand for --form.module; disables other --from.*
-                           arguments. Usage is not recommended in production.
-  --from.module <package>  The module to import from using node require().
-  --from.export <name>     Name of the exports to be imported. Default: 'default'.
-                           If not found, falls back to the default export.
-  --from.args.* <value>    Arguments passed to the reader factory method.
-  --to <package>           Shorthand for --to.module; disables other --to.*
-                           arguments. Usage is not recommended in production.
-  --to.module <package>    The module to import from using node require().
-  --to.export <name>       Name of the exports to be imported. Default: 'default'.
-                           If not found, falls back to the default export.
-  --to.args.* <value>      Arguments passed to the writer factory method.
-  --controller <package>   Shorthand for --controller.module; disables other
-                           --controller.* arguments.
-  --controller.module      Your custom controller that works on the page data.
-  --controller.export      Name of the exports to be imported. Default: 'default'.
-  --variables.* <value>    Additional variables that will be accessible in the
-                           controller's context (this.<variable>).`);
+	console.log(fs.readFileSync(__dirname + '/../HELP.txt', 'utf-8'));
 }
 
 /**
@@ -95,35 +69,42 @@ Options:
  */
 async function prepareRoute(route: unknown): Promise<Route> {
 	assertObject('route', route);
-
 	const { from, to, controller, variables } = route;
 
-	assertFromTo('from', from);
-	const fromObj = typeof from === 'object' ? from : { module: from };
-	const fromFactory = await importModule(fromObj.module, fromObj.export);
-	if (typeof fromFactory !== 'function')
-		throw new Error(`'from.module' error: '${fromObj.module}' does not exports a function.`);
-	const fromIterable = await fromFactory(...await parseArgs(fromObj.module, fromObj.args));
-	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
-		throw new Error(`'from.module' error: '${fromObj.module}' does not provide an iterable or async iterable.`);
+	assertImport('from', from);
+	const fromModuleName = typeof from === 'string' ? from : from.module;
 
-	assertFromTo('to', to);
-	const toObj = typeof to === 'object' ? to : { module: to };
-	const toFactory = await importModule(toObj.module, toObj.export);
+	const fromFactory = await importModule(from);
+	if (typeof fromFactory !== 'function')
+		throw new Error(`'from.module' error: '${fromModuleName}' does not exports a function.`);
+
+	const fromArgs = typeof from === 'object' ? await parseArgs(from.args) : [];
+
+	const fromIterable = await fromFactory(...fromArgs);
+	if (!(Symbol.iterator in fromIterable || Symbol.asyncIterator in fromIterable))
+		throw new Error(`'from.module' error: '${fromModuleName}' does not provide an iterable or async iterable.`);
+
+	assertImport('to', to);
+	const toModuleName = typeof to === 'string' ? to : to.module;
+
+	const toFactory = await importModule(to);
 	if (typeof toFactory !== 'function')
-		throw new Error(`'to.module' error: '${toObj.module}' does not exports a function.`);
-	const toWriter = await toFactory(...await parseArgs(toObj.module, toObj.args));
+		throw new Error(`'to.module' error: '${toModuleName}' does not exports a function.`);
+
+	const toArgs = typeof to === 'object' ? await parseArgs(to.args) : [];
+
+	const toWriter = await toFactory(...await toArgs);
 	if (typeof toWriter !== 'function')
-		throw new Error(`'to.module' error: '${toObj.module}' does not provide a function after initialization.`);
+		throw new Error(`'to.module' error: '${toModuleName}' does not provide a function after initialization.`);
 
 	let controllerFn;
 	if (typeof controller !== 'undefined') {
 		assertController(controller);
-		const controllerObj = typeof controller === 'object' ? controller : { module: controller };
-		controllerFn = await importModule(controllerObj.module, controllerObj.export);
+		const controllerModuleName = typeof controller === 'string' ? controller : controller.module;
 
+		controllerFn = await importModule(controller);
 		if (typeof controllerFn !== 'function')
-			throw new Error(`'controller' error: '${controllerObj.module}' does not provide a function.`);
+			throw new Error(`'controller' error: '${controllerModuleName}' does not provide a function.`);
 	}
 
 	if (typeof variables !== 'undefined')
@@ -149,7 +130,10 @@ function routesFromFile(file: string): Promise<Route[]> {
 	}
 	try {
 		const config = yaml.load(fs.readFileSync(file, 'utf-8'));
-		return Promise.all(ensureArray(config).map(x => prepareRoute(x)));
+		return Promise.all(
+			(Array.isArray(config) ? config : [config])
+				.map(x => prepareRoute(x))
+		);
 	} catch (error: unknown) {
 		throw new Error(`Could not prepare configuration: ${error instanceof Error ? error.message : error}`);
 	}

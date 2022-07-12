@@ -1,15 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as importFrom from 'import-from';
+
+type ModuleConfig = string | {
+	module: string;
+	export?: string;
+};
 
 /**
  * Imports an ES or CJS module, relative from the process.cwd().
- *
- * @param moduleName Module path.
- * @param exportName Preferred export, if not exists fallbacks to default, then a cjs function export.
- * @returns Module exports.
  */
-export const importModule = async (moduleName: string, exportName = 'default'): Promise<unknown> => {
+export const importModule = async (moduleConfig: ModuleConfig): Promise<unknown> => {
+	if (typeof moduleConfig === 'string')
+		moduleConfig = { module: moduleConfig };
+
+	const { module: moduleName, export: exportName = 'default' } = moduleConfig;
+
 	try {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const module: any = importFrom(process.cwd(), moduleName);
 		return module[exportName] ?? module.default?.[exportName] ?? module.default ?? module;
 	} catch (error: unknown) {

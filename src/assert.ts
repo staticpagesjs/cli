@@ -40,7 +40,7 @@ export function assertObjectOrString(name: string, x: unknown): asserts x is Rec
  * @param name Name of the variable that is reported on error: from/to
  * @param x The variable to check.
  */
-export function assertFromTo(name: string, x: unknown): asserts x is string | {
+export function assertImport(name: string, x: unknown): asserts x is string | {
 	module: string;
 	export?: string;
 	args?: Record<string, unknown> | unknown[];
