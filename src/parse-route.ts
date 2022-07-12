@@ -113,7 +113,7 @@ const subparseArg = async (arg: unknown): Promise<void> => {
 					delete arg[k];
 				} else if (k.endsWith('$import')) {
 					assertImport(k, v);
-					arg[k.substring(0, k.length - 7)] = importModule(v);
+					arg[k.substring(0, k.length - 7)] = await importModule(v);
 					delete arg[k];
 				}
 			}
@@ -127,7 +127,7 @@ const parseArgs = async (args: unknown) => {
 	const argArr = Array.isArray(args) ? args : [args];
 
 	for (const arg of argArr) {
-		subparseArg(arg);
+		await subparseArg(arg);
 	}
 
 	return argArr;
